@@ -1,281 +1,333 @@
-# QuantumDMN Python SDK
+# QuantumBPM Python SDK
 
-Python client library for the QuantumDMN decision engine API.
+Official Python SDK for the [QuantumBPM](https://quantumbpm.com) platform — DMN evaluation, BPMN process orchestration, and external job workers.
 
 ## Installation
 
 ```bash
-pip install quantumdmn-sdk
+pip install quantumbpm-sdk
 ```
 
-Or install from source:
+Python 3.10+. Async-first; built on `asyncio`.
 
-```bash
-pip install -e .
-```
+## What's in the box
 
-## Quick Start
+| Module                    | Purpose                                                                       |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `quantumbpm.QuantumBPM`   | Top-level client exposing `.dmn`, `.bpmn`, plus `new_worker(...)`             |
+| `quantumbpm.auth`         | `TokenProvider`, `ZitadelTokenProvider`, `StaticTokenProvider`                |
+| `quantumbpm.dmn`          | DMN evaluation: stored definitions, ad-hoc XML, batch                         |
+| `quantumbpm.bpmn`         | BPMN resources, instances, messaging, user tasks, processes                   |
+| `quantumbpm.workers`      | External job worker runtime — long-poll, lock heartbeat, dispatch             |
+| `quantumbpm.variables`    | `Vars` wrapper with typed accessors and FEEL-context conversion               |
+| `quantumbpm.api[_client]` | OpenAPI-generated client. Reachable via `client.raw`, never hand-edited       |
+
+## Quick start
 
 ```python
-from quantumdmn import DmnEngine, ZitadelTokenProvider, ApiClient, Configuration
+import asyncio
+from quantumbpm import QuantumBPM, Vars, ZitadelTokenProvider
 
-# Authentication with Zitadel
-auth = ZitadelTokenProvider(
-    key_file_path="path/to/key.json",
-    issuer_url="https://auth.quantumdmn.com",
-    project_id="your-zitadel-project-id"
-)
+async def main():
+    provider = ZitadelTokenProvider(
+        "./service-account.json",         # Zitadel JSON Key file
+        "https://auth.quantumbpm.com",    # issuer
+        "your-zitadel-project-id",        # audience scope
+    )
 
-# Create API client
-config = Configuration(host="https://api.quantumdmn.com")
-client = ApiClient(config)
-client.set_default_header("Authorization", f"Bearer {auth.get_token()}")
+    async with QuantumBPM(
+        base_url="https://api.quantumbpm.com",
+        project_id="00000000-0000-0000-0000-000000000000",
+        token_provider=provider,
+    ) as client:
+        result = await client.dmn.evaluate(
+            "loan-eligibility",
+            Vars().set("requestedAmt", 1000).set("creditScore", 720),
+        )
+        print(result)
 
-# Create DMN engine
-engine = DmnEngine(client, project_id="your-dmn-project-id")
-
-# Evaluate a decision
-result = engine.evaluate(
-    definition_id="your-definition-id",
-    context={"input1": 100, "input2": "value"}
-)
-
-# Result is Dict[str, EvaluationResult]
-for key, eval_result in result.items():
-    value = eval_result.value.to_raw()  # Unwrap to Python type
-    print(f"{key}: {value}")
+asyncio.run(main())
 ```
+
+The async context manager (`async with`) acquires a fresh bearer token on entry. Skipping the context manager and calling methods directly works too — the SDK refreshes tokens on demand.
 
 ## Authentication
 
-### Zitadel JWT Profile Authentication
+The `TokenProvider` Protocol returns a bearer token on each request. Two implementations ship out of the box.
 
-The SDK includes a `ZitadelTokenProvider` helper for authenticating using Zitadel service accounts:
-
-```python
-from quantumdmn import ZitadelTokenProvider
-
-# Create token provider
-auth = ZitadelTokenProvider(
-    key_file_path="service-account-key.json",
-    issuer_url="https://your-zitadel-instance.com",
-    project_id="your-zitadel-project-id"
-)
-
-# Get access token (cached automatically)
-token = auth.get_token()
-```
-
-The token provider automatically:
-- Creates JWT assertions signed with your service account key
-- Exchanges them for access tokens
-- Caches tokens until they expire
-- Includes required Zitadel scopes (`urn:zitadel:iam:user:resourceowner`, `urn:zitadel:iam:org:projects:roles`)
-
-### SSL Certificate Verification
-
-For local development with self-signed certificates:
+### Zitadel service account
 
 ```python
-auth = ZitadelTokenProvider(
-    key_file_path="key.json",
-    issuer_url="https://auth.local",
-    project_id="project-id",
-    ssl_ca_cert="/path/to/ca-bundle.crt"  # Optional CA bundle
-)
+from quantumbpm import ZitadelTokenProvider
 
-config = Configuration(host="https://api.local")
-config.ssl_ca_cert = "/path/to/ca-bundle.crt"
-```
-
-## Using the DMN Engine
-
-The `DmnEngine` class provides a simplified interface for DMN evaluation:
-
-```python
-from quantumdmn import DmnEngine, ApiClient, Configuration
-
-# Setup
-config = Configuration(host="https://api.quantumdmn.com")
-client = ApiClient(config)
-client.set_default_header("Authorization", f"Bearer {token}")
-
-engine = DmnEngine(client, project_id="your-project-id")
-
-# Evaluate by definition ID (UUID or XML ID)
-result = engine.evaluate(
-    definition_id="_myDecisionId",  # or UUID
-    context={"age": 25, "income": 50000},
-    version=None  # Optional: specify version number
-)
-
-# Result is Dict[str, EvaluationResult]
-for key, eval_result in result.items():
-    print(f"{key}:")
-    print(f"  Value: {eval_result.value.to_raw()}")
-    print(f"  Type: {eval_result.type}")
-    print(f"  Decision ID: {eval_result.decision_id}")
-```
-
-### Context Conversion
-
-The engine automatically converts Python types to FEEL values:
-
-```python
-context = {
-    "string_val": "hello",
-    "number_val": 42,
-    "boolean_val": True,
-    "list_val": [1, 2, 3],
-    "dict_val": {"nested": "value"},
-    "none_val": None
-}
-
-result = engine.evaluate("decision-id", context)
-```
-
-## Working with FeelValue
-
-For advanced use cases, you can work directly with `FeelValue` objects:
-
-```python
-from quantumdmn import FeelValue
-
-# Create FEEL values explicitly
-num = FeelValue.of_number(42)
-text = FeelValue.of_string("hello")
-flag = FeelValue.of_boolean(True)
-items = FeelValue.of_list([
-    FeelValue.of_number(1),
-    FeelValue.of_number(2)
-])
-ctx = FeelValue.of_context({
-    "name": FeelValue.of_string("John"),
-    "age": FeelValue.of_number(30)
-})
-
-# Auto-convert from Python
-feel_val = FeelValue.from_python({"key": "value"})
-
-# Convert to raw Python types
-raw = feel_val.to_raw()  # Returns dict, list, str, int, bool, etc.
-
-# Serialize for API
-json_data = feel_val.to_dict()
-```
-
-## Direct API Access
-
-For more control, use the generated API client directly:
-
-```python
-from quantumdmn import DefaultApi, ApiClient, Configuration
-from quantumdmn.models import EvaluateStoredRequest
-
-config = Configuration(host="https://api.quantumdmn.com")
-client = ApiClient(config)
-client.set_default_header("Authorization", f"Bearer {token}")
-
-api = DefaultApi(client)
-
-# Evaluate with full control
-request = EvaluateStoredRequest(
-    context={"input": 100},
-    version=1
-)
-
-response = api.evaluate_stored(
-    project_id="project-uuid",
-    definition_id="definition-uuid",
-    evaluate_stored_request=request
-)
-
-# Response is Dict[str, EvaluationResult]
-for key, evaluation in response.items():
-    print(f"{key}: {evaluation.value.to_raw()}")
-```
-
-## Error Handling
-
-```python
-from quantumdmn.exceptions import ApiException
-
-try:
-    result = engine.evaluate("definition-id", context)
-except ApiException as e:
-    print(f"API Error: {e.status} - {e.reason}")
-    print(f"Response: {e.body}")
-```
-
-## Configuration Options
-
-```python
-from quantumdmn import Configuration
-
-config = Configuration(
-    host="https://api.quantumdmn.com",
-    ssl_ca_cert="/path/to/ca.crt",  # SSL certificate verification
-    verify_ssl=True,                 # Enable/disable SSL verification
-    proxy="http://proxy:8080",       # HTTP proxy
-    debug=False                       # Enable debug logging
+provider = ZitadelTokenProvider(
+    "./service-account.json",         # path to JSON Key file
+    "https://auth.quantumbpm.com",    # issuer URL
+    "your-zitadel-project-id",        # adds the audience scope
+    ssl_ca_cert="/path/to/ca.crt",    # optional, for self-signed CAs
 )
 ```
 
-## Complete Example
+The provider caches tokens in-memory until shortly before expiry.
+
+### Static bearer token
+
+For Enterprise deployments that issue long-lived API keys, or in tests where a token is acquired out of band:
 
 ```python
-import os
-from quantumdmn import (
-    DmnEngine,
-    ZitadelTokenProvider,
-    ApiClient,
-    Configuration
-)
-from quantumdmn.exceptions import ApiException
+from quantumbpm import StaticTokenProvider
 
-def main():
-    # Authentication
-    auth = ZitadelTokenProvider(
-        key_file_path=os.getenv("DMN_KEY_FILE"),
-        issuer_url=os.getenv("DMN_AUTH_URL"),
-        project_id=os.getenv("ZITADEL_PROJECT_ID")
-    )
-    
-    # Setup client
-    config = Configuration(host=os.getenv("DMN_API_URL"))
-    client = ApiClient(config)
-    
-    # Get token and set authorization
-    token = auth.get_token()
-    client.set_default_header("Authorization", f"Bearer {token}")
-    
-    # Create engine
-    engine = DmnEngine(client, project_id=os.getenv("DMN_PROJECT_ID"))
-    
-    # Evaluate
+provider = StaticTokenProvider("eyJhbGciOi...")
+```
+
+### Bring your own
+
+Implement the Protocol:
+
+```python
+from quantumbpm import TokenProvider
+
+class MyProvider:
+    async def get_token(self) -> str:
+        return await fetch_my_token()
+
+provider: TokenProvider = MyProvider()
+```
+
+## DMN evaluation
+
+The `client.dmn` sub-client offers four async methods.
+
+### Evaluate a stored definition
+
+```python
+result = await client.dmn.evaluate(
+    "loan-eligibility",
+    Vars().set("requestedAmt", 5000).set("creditScore", 720),
+)
+```
+
+Returns `dict[str, EvaluationResult]` keyed by decision name. Each result has `value`, `hit_rules`, `error`, and `type`.
+
+Pin a version, restrict the evaluated decisions, or attach decision services:
+
+```python
+result = await client.dmn.evaluate(
+    "loan-eligibility",
+    vars,
+    version=3,
+    decisions=["eligibility", "rate"],
+)
+```
+
+### Evaluate by platform UUID
+
+When you already hold a database-version pointer:
+
+```python
+result = await client.dmn.evaluate_by_id(definition_uuid, vars)
+```
+
+### Ad-hoc XML evaluation
+
+For "evaluate while editing" flows that don't store the XML:
+
+```python
+result = await client.dmn.evaluate_design(
+    dmn_xml,
+    vars,
+    additional_xmls=[imported_xml1, imported_xml2],
+    decisions=["eligibility"],
+)
+```
+
+### Batch ad-hoc evaluation
+
+```python
+rows = [
+    Vars().set("requestedAmt", 1000),
+    Vars().set("requestedAmt", 5000),
+    Vars().set("requestedAmt", 25000),
+]
+batch = await client.dmn.evaluate_design_batch(dmn_xml, rows)
+```
+
+## BPMN processes
+
+`client.bpmn` covers the full BPMN runtime surface.
+
+### Deploy and start
+
+```python
+draft = await client.bpmn.create_resource("loan-process", bpmn_xml)
+await client.bpmn.deploy_resource(draft.id)
+
+# Re-fetch to get the populated process-definition list.
+deployed = await client.bpmn.get_resource(draft.id)
+process_def = deployed.processes[0]
+
+workflow_id = await client.bpmn.start_instance(
+    process_def.id,
+    Vars().set("applicantID", "u-123").set("requestedAmt", 25000),
+)
+```
+
+### Inspect runtime state
+
+```python
+state = await client.bpmn.get_instance(workflow_id)
+print(state.status, state.active_scopes)
+
+vars = await client.bpmn.get_instance_variables(workflow_id)
+
+children = await client.bpmn.get_instance_children(workflow_id)
+```
+
+### Send messages and signals
+
+```python
+await client.bpmn.publish_message(
+    "loan-approved",
+    Vars().set("approvedAmt", 24000),
+    correlation_keys={"applicantID": "u-123"},
+    ttl="PT5M",
+)
+
+await client.bpmn.publish_signal("system-maintenance")
+```
+
+### User tasks
+
+```python
+page = await client.bpmn.list_user_tasks(
+    assignee="alice@example.com",
+    status="CREATED",
+)
+
+await client.bpmn.complete_user_task(execution_key, Vars().set("approved", True))
+
+# Or fail with a BPMN error code (matches boundary error events):
+await client.bpmn.throw_user_task_error(execution_key, "REVIEW_REJECTED")
+```
+
+## External job workers
+
+Workers handle service tasks asynchronously. Register a handler per task type with a decorator, then call `run`. The runtime owns long-polling, lock heartbeats, dispatch, and outcome mapping.
+
+### Minimal worker
+
+```python
+import asyncio
+from quantumbpm import QuantumBPM, Vars, BpmnError
+from quantumbpm.workers import Job
+
+async def main():
+    async with QuantumBPM(...) as client:
+        worker = client.new_worker(client_id="billing-svc")
+        stop = asyncio.Event()
+
+        @worker.handler("send-email")
+        async def handle(job: Job) -> Vars:
+            recipient = job.vars.lookup("recipient")
+            subject = job.vars.lookup("subject")
+            await emailer.send(recipient, subject)
+            return Vars().set("messageID", "msg-123")  # → Complete
+
+        await worker.run(stop)  # blocks until stop is set
+
+asyncio.run(main())
+```
+
+`run(stop)` resolves when the `asyncio.Event` is set, after in-flight handlers settle.
+
+### Concurrency, polling, and locks
+
+```python
+@worker.handler(
+    "send-email",
+    max_jobs=10,            # up to 10 in flight per task type
+    poll_timeout="45s",     # long-poll wait
+    lock_duration="2m",     # exclusive lock per job
+)
+async def handle(job: Job) -> Vars:
+    ...
+```
+
+Concurrency is per task type. Different task types run independently. The runtime auto-renews the lock at half the lock-duration interval while the handler runs.
+
+### Throwing typed BPMN errors
+
+Raise a `BpmnError` to fail the job with a code that boundary error events on the originating service task can catch:
+
+```python
+@worker.handler("charge-card")
+async def handle(job: Job) -> Vars:
     try:
-        result = engine.evaluate(
-            definition_id=os.getenv("DMN_DEFINITION_ID"),
-            context={
-                "amount": 1000,
-                "customer_type": "premium",
-                "risk_score": 0.25
-            }
-        )
-        
-        print("Decision result:")
-        for key, eval_result in result.items():
-            value = eval_result.value.to_raw()
-            print(f"  {key}: {value}")
-            
-    except ApiException as e:
-        print(f"Evaluation failed: {e.status} {e.reason}")
-        if e.body:
-            print(f"Details: {e.body}")
-        return 1
-    
-    return 0
-
-if __name__ == "__main__":
-    exit(main())
+        tx_id = await charge(job.vars.to_dict())
+        return Vars().set("transactionID", tx_id)
+    except InsufficientFundsError:
+        raise BpmnError("INSUFFICIENT_FUNDS", Vars().set("availableBalance", 12.0))
 ```
+
+Any other exception is reported as `WORKER_ERROR`, which the server treats as a retryable failure that decrements the job's retry budget.
+
+### Typed handlers (Pydantic)
+
+Type-annotate the `Job` parameter with a Pydantic model — the runtime validates the job's input variables before invoking the handler. The decoded value lands in `job.typed`.
+
+```python
+from pydantic import BaseModel
+from quantumbpm.workers import Job
+
+class EmailJob(BaseModel):
+    recipient: str
+    subject: str
+
+@worker.handler("send-email")
+async def handle(job: Job[EmailJob]) -> Vars:
+    await emailer.send(job.typed.recipient, job.typed.subject)
+    return Vars().set("messageID", "msg-123")
+```
+
+Decode failures become `WORKER_ERROR` automatically, with the validation message in the variables.
+
+## Variables
+
+`Vars` is a thin wrapper around `dict[str, Any]` shared by DMN, BPMN, and workers.
+
+### Construction
+
+```python
+v = Vars().set("amount", 100).set("name", "Alice")
+v = Vars.from_dict({"amount": 100, "name": "Alice"})
+```
+
+### Typed access
+
+```python
+amount = v.get("amount", float)
+flag   = v.get("approved", bool)
+
+class Loan(BaseModel):
+    requestedAmt: float
+    approved: bool
+
+loan = v.as_type(Loan)
+```
+
+`Vars.get(name, type_)` and `Vars.as_type(type_)` accept Pydantic models, dataclasses, and primitives — Pydantic's `TypeAdapter` does the validation.
+
+## Escape hatch
+
+The `client.raw` property exposes the underlying generated `ApiClient` for endpoints not yet wrapped (instance migration, modification, ad-hoc triggers, batch job complete/error, etc.):
+
+```python
+from quantumbpm.api.bpmn_api import BpmnApi
+
+api = BpmnApi(client.raw)
+result = api.migrate_bpmn_instance(client.project_id, workflow_id, body)
+```
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.

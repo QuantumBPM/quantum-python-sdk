@@ -1,13 +1,8 @@
 openapi: 3.0.0
 info:
-  title: Go DMN Web API
+  title: Go DMN Web API (Public)
   version: 1.0.0
-  description: API for the Go DMN Web application.
-
-# servers:
-#   - url: /api/v1
-#     description: V1
-
+  description: Public API for the Go DMN Web application. SDKs are generated from this spec.
 paths:
   /health:
     get:
@@ -23,27 +18,7 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: "ok"
-  
-  /overview:
-    get:
-      summary: Get Overview Dashboard Data
-      operationId: GetOverview
-      description: Returns aggregated statistics for the overview dashboard including KPI charts and quota status.
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OverviewResponse'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  
+                    example: ok
   /version:
     get:
       summary: Version
@@ -58,186 +33,22 @@ paths:
                 properties:
                   version:
                     type: string
-                    example: "1.0.0"
-                  build_time:
+                    example: 1.0.0
+                  buildTime:
                     type: string
-                    example: "2023-10-27T10:00:00Z"
+                    example: '2023-10-27T10:00:00Z'
                   commit:
                     type: string
-                    example: "abcdef123"
-
-  /config:
-    get:
-      summary: Get Frontend Configuration
-      operationId: GetFrontendConfig
-      description: Returns configuration required by the frontend application (OIDC settings)
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FrontendConfig'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-
-  /settings:
-    patch:
-      summary: Update Customer Settings
-      operationId: UpdateCustomerSettings
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                allowOverage:
-                  type: boolean
-      responses:
-        '200':
-          description: OK
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /users:
-    get:
-      summary: List Organization Users
-      operationId: ListUsers
-      parameters:
-        - name: search
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Search by email or username
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrganizationUser'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /users/batch:
+                    example: abcdef123
+  /dmn/evaluate/design:
     post:
-      summary: Batch Get Organization Users
-      operationId: BatchGetUsers
-      description: Retrieve multiple users by their IDs. Available to all authenticated organization members.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - user_ids
-              properties:
-                user_ids:
-                  type: array
-                  items:
-                    type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/OrganizationUser'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /subscription/portal-session:
-    get:
-      summary: Get Customer Portal Session
-      operationId: GetCustomerPortalSession
-      description: Returns a generated link to the Paddle Customer Portal
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  url:
-                    type: string
-        '403':
-          description: Forbidden (No subscription)
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /billing/upgrade-transaction:
-    post:
-      summary: Create Subscription Upgrade Transaction
-      operationId: CreateSubscriptionUpgradeTransaction
-      description: Creates a Paddle transaction to upgrade/downgrade the current subscription
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - priceId
-              properties:
-                priceId:
-                  type: string
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  transactionId:
-                    type: string
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          description: No active subscription
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /permissions:
-    get:
-      summary: Get User Permissions
-      operationId: GetUserPermissions
-      description: Returns the current user's global role and all project-level permissions
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserPermissions'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /evaluate/design:
-    post:
-      summary: Evaluate DMN Design
+      summary: Evaluate ad-hoc DMN XML
       operationId: EvaluateDesign
+      description: |
+        Evaluates DMN XML supplied in the request without storing it. Useful for
+        testing decisions during authoring or for one-off evaluations that do
+        not need to be tracked. Use the project-scoped evaluation endpoints
+        against deployed definitions instead when running production workloads.
       requestBody:
         required: true
         content:
@@ -249,8 +60,10 @@ paths:
               properties:
                 xml:
                   type: string
-                additionalXmls:
+                  description: DMN XML to evaluate.
+                additionalXMLs:
                   type: array
+                  description: Additional DMN XML documents whose decisions are imported and may be referenced from `xml`.
                   items:
                     type: string
                 context:
@@ -259,39 +72,12 @@ paths:
                   type: array
                   items:
                     type: string
-                  description: Names of the Decision Services to evaluate (optional)
+                  description: Names of decision services to evaluate. If empty, no decision services are evaluated.
                 decisions:
                   type: array
                   items:
                     type: string
-                  description: List of Decision or Decision Service names to evaluate (optional)
-                kpiInitialState:
-                  type: object
-                  description: Initial state for windowed KPIs (KPI ID -> array of timestamped values)
-                  additionalProperties:
-                    type: array
-                    items:
-                      type: object
-                      required:
-                        - metrics
-                        - timestamp
-                      properties:
-                        metrics:
-                          type: array
-                          items:
-                            type: object
-                            required:
-                              - value
-                              - field
-                            properties:
-                              value:
-                                $ref: '#/components/schemas/FeelValue'
-                              field:
-                                type: string
-                        timestamp:
-                          type: string
-                          format: date-time
-                          description: Timestamp of the measurement (ISO 8601)
+                  description: Names of decisions or decision services to evaluate. If empty, all decisions in the document are evaluated.
       responses:
         '200':
           description: OK
@@ -313,62 +99,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  
-  /projects/{projectID}/definitions/{definitionID}/evaluate:
+  /dmn/evaluate/design/batch:
     post:
-      summary: Evaluate Stored Definition
-      operationId: EvaluateStored
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: definitionID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EvaluateStoredRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties:
-                  $ref: '#/components/schemas/EvaluationResult'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /evaluate/design/batch:
-    post:
-      summary: Batch evaluate a DMN design with multiple inputs
+      summary: Batch evaluate ad-hoc DMN XML against multiple inputs
       operationId: EvaluateDesignBatch
+      description: |
+        Evaluates a single DMN document against many input rows in one request.
+        Useful for bulk testing during decision authoring (e.g. running a
+        spreadsheet of expected cases through a draft decision table).
       requestBody:
         required: true
         content:
@@ -390,6 +128,7 @@ paths:
     get:
       summary: List Projects
       operationId: ListProjects
+      description: Lists projects the caller has access to within their account.
       responses:
         '200':
           description: OK
@@ -408,6 +147,10 @@ paths:
     post:
       summary: Create Project
       operationId: CreateProject
+      description: |
+        Creates a new project. Projects are workspaces that group DMN definitions
+        and BPMN processes for execution and access control. The caller is
+        automatically added as a project administrator.
       requestBody:
         required: true
         content:
@@ -427,21 +170,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403':
+          description: Project quota for the caller's tier has been reached.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /projects/{projectID}:
     get:
       summary: Get Project
       operationId: GetProject
+      description: Returns the project's metadata.
       parameters:
         - name: projectID
           in: path
           required: true
+          description: Identifier of the project to fetch.
           schema:
             type: string
             format: uuid
@@ -473,10 +223,16 @@ paths:
     delete:
       summary: Delete Project
       operationId: DeleteProject
+      description: |
+        Permanently deletes a project and all of its data: DMN definitions and
+        executions, BPMN resources and instances, jobs, user tasks, messages,
+        signals, and members. Running BPMN instances are terminated. This
+        action cannot be undone.
       parameters:
         - name: projectID
           in: path
           required: true
+          description: Identifier of the project to delete.
           schema:
             type: string
             format: uuid
@@ -501,119 +257,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-
-  /projects/{projectID}/members:
+  /projects/{projectID}/dmn/definitions:
     get:
-      summary: List Project Members
-      operationId: ListProjectMembers
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProjectMember'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    post:
-      summary: Add Project Member
-      operationId: AddProjectMember
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AddProjectMemberRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProjectMember'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-  /projects/{projectID}/members/{userID}:
-    put:
-      summary: Update Project Member Role
-      operationId: UpdateProjectMemberRole
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: userID
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateProjectMemberRoleRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProjectMember'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalError'
-    delete:
-      summary: Remove Project Member
-      operationId: RemoveProjectMember
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: userID
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: No Content
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '500':
-          $ref: '#/components/responses/InternalError'
-
-
-  /projects/{projectID}/definitions:
-    get:
-      summary: List Definitions
+      summary: List DMN definitions
       operationId: ListDefinitions
+      description: Lists all definition versions in the project. Each call to `CreateDefinition` produces a new version.
       parameters:
         - name: projectID
           in: path
@@ -664,8 +312,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
-      summary: Create Definition
+      summary: Create a DMN definition
       operationId: CreateDefinition
+      description: |
+        Stores a new DMN definition. Each call creates a new version
+        (auto-incremented). To replace an existing definition, post the new
+        XML with the same `definitionsID`.
       parameters:
         - name: projectID
           in: path
@@ -704,11 +356,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/definitions/latest:
+  /projects/{projectID}/dmn/definitions/latest:
     get:
-      summary: List Latest Definitions (one per definition_id)
+      summary: List latest DMN definitions
       operationId: ListLatestDefinitions
+      description: Returns the most recent version of each unique definition. Use this for picking a definition to evaluate.
       parameters:
         - name: projectID
           in: path
@@ -758,12 +410,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/definitions/by-xml-id/{xmlDefinitionID}:
+  /projects/{projectID}/dmn/definitions/by-definitions-id/{definitionsID}:
     get:
-      summary: Get definition by XML definition ID
-      description: Get the latest version of a definition by its XML definition ID, or a specific version if provided
-      operationId: GetDefinitionByXMLID
+      summary: Get a DMN definition by its DMN definitions id
+      description: |
+        Looks up a definition by the `id` attribute on the `<definitions>` root
+        element of the DMN XML, instead of by the platform-internal `id`.
+        Returns the latest version unless a specific version is requested.
+      operationId: GetDefinitionByDefinitionsID
       parameters:
         - name: projectID
           in: path
@@ -771,12 +425,12 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: xmlDefinitionID
+        - name: definitionsID
           in: path
           required: true
           schema:
             type: string
-          description: The XML definition ID from the DMN model
+          description: Stable identifier from the DMN XML's outer `<definitions id="…">` attribute.
         - name: version
           in: query
           required: false
@@ -802,12 +456,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/definitions/by-xml-id/{xmlDefinitionID}/evaluate:
-    post:
-      summary: Evaluate definition by XML definition ID
-      description: Evaluate a decision using XML definition ID (uses latest version unless version parameter specified)
-      operationId: EvaluateByXMLID
+  /projects/{projectID}/dmn/definitions/by-definitions-id/{definitionsID}/versions:
+    get:
+      summary: List all versions of a DMN definition
+      operationId: ListDefinitionVersions
+      description: Returns every stored version of a definition identified by its DMN `<definitions id>`, newest to oldest.
       parameters:
         - name: projectID
           in: path
@@ -815,12 +468,76 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: xmlDefinitionID
+        - name: definitionsID
           in: path
           required: true
           schema:
             type: string
-          description: The XML definition ID from the DMN model
+          description: Stable identifier from the DMN XML's outer `<definitions id="…">` attribute.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number (1-indexed)
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of items per page (max 100)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDefinitionsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /projects/{projectID}/dmn/definitions/by-definitions-id/{definitionsID}/evaluate:
+    post:
+      summary: Evaluate a DMN definition by its DMN definitions id
+      description: |
+        Evaluates a stored DMN definition addressed by its `<definitions id>`
+        XML attribute. Useful when callers know definitions by their DMN-level
+        identifier rather than the platform's internal `id`. Defaults to the
+        latest deployed version.
+      operationId: EvaluateByDefinitionsID
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionsID
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Stable identifier from the DMN XML's outer `<definitions id="…">` attribute.
         - name: version
           in: query
           required: false
@@ -860,70 +577,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/definitions/by-definition-id/{definitionId}:
+  /projects/{projectID}/dmn/definitions/{definitionID}:
     get:
-      summary: List all versions of a specific definition_id
-      operationId: ListDefinitionVersions
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: definitionId
-          in: path
-          required: true
-          schema:
-            type: string
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-          description: Page number (1-indexed)
-        - name: pageSize
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
-          description: Number of items per page (max 100)
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaginatedDefinitionsResponse'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Not Found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/definitions/{definitionID}:
-    get:
-      summary: Get Definition
+      summary: Get a DMN definition
       operationId: GetDefinition
+      description: Returns a single definition version by its platform identifier.
       parameters:
         - name: projectID
           in: path
@@ -963,8 +621,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     put:
-      summary: Update Definition
+      summary: Update a DMN definition's metadata
       operationId: UpdateDefinition
+      description: Modifies metadata (name) of a stored definition. The DMN XML and version are immutable; post a new definition with the same XML `id` to publish a new version.
       parameters:
         - name: projectID
           in: path
@@ -1010,8 +669,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     delete:
-      summary: Delete Definition
+      summary: Delete a DMN definition version
       operationId: DeleteDefinition
+      description: Permanently deletes a single definition version. Past executions of this version remain in history.
       parameters:
         - name: projectID
           in: path
@@ -1046,12 +706,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-
-  /projects/{projectID}/definitions/{definitionID}/simulate:
+  /projects/{projectID}/dmn/definitions/{definitionID}/evaluate:
     post:
-      summary: Run Simulation on Historical Data
-      operationId: RunSimulation
+      summary: Evaluate a stored DMN definition
+      operationId: EvaluateStored
+      description: |
+        Evaluates a stored DMN definition against the supplied context.
+        Each call is recorded in execution history and counts toward the
+        account's evaluation quota.
       parameters:
         - name: projectID
           in: path
@@ -1070,23 +732,39 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SimulationRequest'
+              $ref: '#/components/schemas/EvaluateStoredRequest'
       responses:
         '200':
-          description: Simulation successful
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SimulationResponse'
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/EvaluationResult'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
-          $ref: '#/components/responses/InternalError'
-
-  /projects/{projectID}/definitions/{definitionID}/executions:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /projects/{projectID}/dmn/definitions/{definitionID}/executions:
     get:
-      summary: List Executions for Definition
+      summary: List executions of a DMN definition
       operationId: ListExecutions
+      description: Returns paginated execution history for a single definition.
       parameters:
         - name: projectID
           in: path
@@ -1100,13 +778,13 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: xmlDefinitionId
+        - name: definitionsID
           in: query
           required: false
           schema:
             type: string
-          description: Filter by XML Definition ID
-        - name: start_date
+          description: Filter by DMN `<definitions id>` (XML id).
+        - name: startDate
           in: query
           required: false
           schema:
@@ -1155,11 +833,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/executions:
+  /projects/{projectID}/dmn/decisions:
     get:
-      summary: List All Executions for Project
-      operationId: ListProjectExecutions
+      summary: List decisions
+      description: |
+        Returns one row per unique decision XML id in the project, with the
+        latest known version and the owning definition. Useful for picking
+        a target decision when wiring a BPMN BusinessRuleTask.
+      operationId: ListDecisions
       parameters:
         - name: projectID
           in: path
@@ -1167,12 +848,56 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: xmlDefinitionId
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number (1-indexed)
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of items per page (max 100)
+        - name: q
           in: query
           required: false
           schema:
             type: string
-          description: Filter by XML Definition ID
+          description: Optional case-insensitive substring match against decision name, decision id, or owning definition name.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedDecisionsResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /projects/{projectID}/dmn/executions:
+    get:
+      summary: List DMN executions across the project
+      operationId: ListProjectExecutions
+      description: Returns paginated execution history for the entire project, optionally filtered by DMN definition.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionsID
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by DMN `<definitions id>` (XML id).
         - name: page
           in: query
           required: false
@@ -1215,11 +940,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /projects/{projectID}/executions/{executionID}:
+  /projects/{projectID}/dmn/executions/{executionID}:
     get:
-      summary: Get Execution
+      summary: Get a single DMN execution
       operationId: GetExecution
+      description: Returns the inputs, outputs, and per-decision evaluation results for a single past execution.
       parameters:
         - name: projectID
           in: path
@@ -1258,49 +983,433 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
-  /limits:
+  /projects/{projectID}/bpmn/resources:
     get:
-      summary: Get Quota Limits
-      operationId: GetLimits
+      summary: List BPMN resources
+      operationId: ListBpmnResources
+      description: Returns all BPMN resource versions in the project, including drafts and deployed versions.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Quota'
+                $ref: '#/components/schemas/BpmnResourcePaginatedResponse'
+    post:
+      summary: Create a BPMN resource
+      operationId: CreateBpmnResource
+      description: |
+        Uploads a new BPMN XML resource as a draft. Drafts can be edited and
+        tested but cannot start production instances until they are deployed.
+        The XML is validated; invalid XML is rejected.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBpmnResourceRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnResourceDetail'
+  /projects/{projectID}/bpmn/resources/{resourceID}:
+    get:
+      summary: Get a BPMN resource
+      operationId: GetBpmnResource
+      description: Returns the XML and parsed metadata for a single resource version.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resourceID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnResourceDetail'
+    put:
+      summary: Update a draft BPMN resource
+      operationId: UpdateBpmnResource
+      description: |
+        Replaces the XML of an existing draft resource. Once a resource has
+        been deployed it is immutable; deploy a new version instead.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resourceID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBpmnResourceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnResourceDetail'
+        '409':
+          description: Conflict — resource is already deployed
+    delete:
+      summary: Delete a BPMN resource version
+      operationId: DeleteBpmnResource
+      description: Permanently deletes a single resource version. Past instances of this version remain in history.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resourceID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+  /projects/{projectID}/bpmn/resources/{resourceID}/deploy:
+    post:
+      summary: Deploy a BPMN resource
+      operationId: DeployBpmnResource
+      description: |
+        Marks all processes inside the resource as executable, making them
+        available to start instances of. Deployment is one-way; to change a
+        deployed resource, upload a new version and deploy that.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resourceID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
-           $ref: '#/components/responses/InternalError'
-
-  /tiers:
+          $ref: '#/components/responses/InternalError'
+  /projects/{projectID}/bpmn/resources/{resourceID}/test:
+    post:
+      summary: Start a test instance from a draft resource
+      operationId: StartBpmnTestInstance
+      description: |
+        Starts a process instance against a draft (non-deployed) resource.
+        Useful for trying out an in-progress design before deploying.
+        Test instances run with the same engine as production but are flagged
+        so they can be filtered out of dashboards.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: resourceID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartBpmnTestInstanceRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflowID:
+                    type: string
+                    description: Stable execution identifier of the new test instance.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /projects/{projectID}/bpmn/resources/latest:
     get:
-      summary: List Tiers
-      operationId: ListTiers
+      summary: List the latest version of each BPMN resource
+      operationId: ListLatestBpmnResources
+      description: Returns one entry per unique BPMN definitions id, with the most recent version's metadata.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Tier'
+                $ref: '#/components/schemas/BpmnResourceSummaryPaginatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Internal Server Error
+          $ref: '#/components/responses/InternalError'
+  /projects/{projectID}/bpmn/resources/by-definitions-id/{definitionsID}:
+    get:
+      summary: List all versions of a BPMN resource
+      operationId: ListBpmnResourcesByDefinitionsID
+      description: Returns every stored version of a resource identified by the BPMN XML's outer `definitions` id, oldest to newest.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionsID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
-  /tiers/{tierID}:
-    get:
-      summary: Get Tier
-      operationId: GetTier
+                $ref: '#/components/schemas/BpmnResourcePaginatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /projects/{projectID}/bpmn/validate:
+    post:
+      summary: Validate BPMN XML without saving
+      operationId: ValidateBpmnXml
+      description: |
+        Parses BPMN XML and reports any structural errors or warnings.
+        Useful for showing inline validation in design tools without
+        committing the resource. The same checks are run server-side
+        before storing or deploying a resource.
+      tags:
+        - bpmn
       parameters:
-        - name: tierID
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ValidateBpmnResourceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnValidateResponse'
+  /projects/{projectID}/bpmn/instances:
+    get:
+      summary: List BPMN instances
+      operationId: ListBpmnInstances
+      description: Returns paginated process instances in the project, optionally filtered by definition or status.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionID
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - RUNNING
+              - COMPLETED
+              - FAILED
+              - CANCELED
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnInstancePaginatedResponse'
+    post:
+      summary: Start a BPMN process instance
+      operationId: StartBpmnInstance
+      description: |
+        Starts a new instance of a deployed BPMN process. The returned
+        `workflowID` is the stable execution identifier — use it to fetch
+        state, send signals/messages, complete user tasks, etc.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartBpmnInstanceRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflowID:
+                    type: string
+                    description: Stable execution identifier of the new instance.
+  /projects/{projectID}/bpmn/instances/{workflowID}:
+    get:
+      summary: Get BPMN instance state
+      operationId: GetBpmnInstance
+      description: |
+        Returns the full runtime state of a process instance — current variables,
+        activity history, active scopes, and any unresolved incidents. Use this
+        to render dashboards or to drive operational decisions on a single
+        instance.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
           in: path
           required: true
           schema:
@@ -1311,246 +1420,1197 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tier'
-        '400':
-          description: Bad Request
+                $ref: '#/components/schemas/BpmnInstanceState'
+    delete:
+      summary: Cancel a BPMN instance
+      operationId: CancelBpmnInstance
+      description: |
+        Cancels a running instance and all of its active activities, jobs, and
+        child instances. Cancellation is best-effort — handlers in flight may
+        still complete before the cancel propagates. Cancelled instances move
+        to status `CANCELED` and stop consuming further work.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+  /projects/{projectID}/bpmn/instances/{workflowID}/children:
+    get:
+      summary: List child instances of a BPMN instance
+      operationId: GetBpmnInstanceChildren
+      description: |
+        Returns instances that this instance spawned via CallActivity elements.
+        Useful for navigating into a multi-level process hierarchy (parents
+        can be discovered via `parentWorkflowID` on the child).
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/BpmnInstanceChildrenResponse'
+  /projects/{projectID}/bpmn/instances/{workflowID}/variables:
+    get:
+      summary: Get BPMN instance variables
+      operationId: GetBpmnInstanceVariables
+      description: Returns the current variables in the root scope of a running or completed instance.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  variables:
+                    type: object
+                    additionalProperties: true
+    put:
+      summary: Update BPMN instance variables
+      operationId: UpdateBpmnInstanceVariables
+      description: |
+        Sets or replaces variables in the root scope of a running instance.
+        The new values become visible to subsequent activities and FEEL
+        expressions immediately. Existing variable keys not present in the
+        payload are kept; pass `null` to clear a key.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties: true
+              required:
+                - variables
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/instances/{workflowID}/incidents/{incidentID}/resolve:
+    post:
+      summary: Resolve an incident and retry the failed activity
+      operationId: ResolveBpmnIncident
+      description: |
+        Marks an incident as resolved and re-runs the activity that produced it.
+        Optional `variables` are merged into the activity's scope before retry —
+        use this to fix the input that caused the failure (e.g. correct a value
+        that triggered a FEEL evaluation error).
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: incidentID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/instances/{workflowID}/migrate:
+    post:
+      summary: Migrate a running instance to a newer process version
+      operationId: MigrateBpmnInstance
+      description: |
+        Moves a running instance from its current process version to a newer
+        one. Element mappings tell the engine how to translate active tokens
+        between versions; unmapped element ids must match by id between source
+        and target. Validate the migration plan first via `MigrateValidate`.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrateBpmnInstanceRequest'
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/instances/{workflowID}/migrate/validate:
+    post:
+      summary: Validate a migration plan without executing it
+      operationId: ValidateBpmnInstanceMigration
+      description: |
+        Returns the issues a migration plan would hit if executed: missing
+        mappings, incompatible element types, active boundary events that
+        would be orphaned, etc. Run this before `Migrate` to surface problems
+        to the user.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrateBpmnInstanceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrationValidationResult'
+  /projects/{projectID}/bpmn/instances/{workflowID}/modify:
+    post:
+      summary: Modify a running instance with ad-hoc token operations
+      operationId: ModifyBpmnInstance
+      description: |
+        Operational recovery tool: applies a sequence of token-level
+        instructions (start before a node, cancel a token in a scope) to a
+        running instance. Useful for unblocking instances that have ended up
+        in unintended states. Restricted to project administrators.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModifyBpmnInstanceRequest'
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/instances/{workflowID}/adhoc/{adHocNodeID}/trigger:
+    post:
+      summary: Activate an activity inside a running ad-hoc subprocess
+      operationId: TriggerBpmnAdHocNode
+      description: |
+        Manually starts one of the activities inside an active ad-hoc
+        subprocess. Each call activates a fresh execution; the same activity
+        can be triggered repeatedly until the ad-hoc subprocess completes.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: adHocNodeID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nodeID
+              properties:
+                nodeID:
+                  type: string
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/instances/{workflowID}/adhoc/{adHocNodeID}/variables:
+    post:
+      summary: Update variables inside a running ad-hoc subprocess
+      operationId: SetBpmnAdHocVariables
+      description: |
+        Sets variables in the ad-hoc subprocess scope. Active activities and
+        the subprocess's completion condition are re-evaluated against the new
+        values, which may cause the subprocess to complete or branch.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: adHocNodeID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/external-jobs:
+    get:
+      summary: List external jobs
+      operationId: ListBpmnExternalJobs
+      description: |
+        Returns paginated external jobs in the project, with optional filters
+        by `taskType`, `status`, and originating instance. Use this to drive
+        a dashboard or to inspect a specific job's history. For pulling
+        pending work as a job worker, use `Poll` instead.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: taskType
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter jobs by task type
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - PENDING
+              - COMPLETED
+              - FAILED
+              - CANCELED
+          description: Filter jobs by status
+        - name: workflowID
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter jobs by workflow ID
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            Only return jobs created at or after this timestamp. Strongly
+            recommended for monitoring views — completed-job records accumulate
+            indefinitely, and unfiltered queries grow linearly with that history.
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnExternalJobPaginatedResponse'
+  /projects/{projectID}/bpmn/external-jobs/queue-depth:
+    get:
+      summary: PENDING job counts grouped by taskType
+      description: |
+        Returns one entry per `taskType` with at least one PENDING job. Useful for
+        monitoring queue backlogs and capacity-planning external job workers.
+      operationId: GetBpmnExternalJobsQueueDepth
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Only count jobs created at or after this timestamp. Should match the time-range selector used by the list endpoint so totals stay consistent.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalJobQueueDepthResponse'
+  /projects/{projectID}/bpmn/external-jobs/workers:
+    get:
+      summary: Live count of long-poll workers grouped by taskType
+      description: |
+        Returns the count of workers currently long-polling for each `taskType`.
+        Reflects only currently-connected workers; long-polls that have timed out
+        or disconnected are not counted.
+      operationId: GetBpmnExternalJobsActiveWorkers
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalJobActiveWorkersResponse'
+  /projects/{projectID}/bpmn/external-jobs/poll:
+    post:
+      summary: Poll for external jobs (long-poll)
+      operationId: PollBpmnExternalJobs
+      description: |
+        Long-polls for PENDING jobs of a given `taskType`. Returns a batch of
+        jobs (up to `maxJobs`) as soon as any are available, or `204 No Content`
+        when the timeout elapses with no work. Each returned job is exclusively
+        leased to the caller for `lockDuration` — call `Heartbeat` to extend
+        the lock, then `Complete` or `ThrowError` to finalize.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollBpmnJobRequest'
+      responses:
+        '200':
+          description: One or more jobs acquired
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExternalJob'
+        '204':
+          description: No jobs available within timeout
+  /projects/{projectID}/bpmn/external-jobs/{executionKey}/heartbeat:
+    post:
+      summary: Extend the lock on an acquired job
+      operationId: HeartbeatBpmnExternalJob
+      description: |
+        Refreshes the exclusive lock on a job that the caller previously
+        acquired via `Poll`. Call this periodically when handling a job that
+        takes longer than the original `lockDuration`. Other workers cannot
+        claim the job until the lock expires or the job is completed.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - clientID
+              properties:
+                clientID:
+                  type: string
+                lockDuration:
+                  type: string
+                  description: Duration string e.g. '30s', '2m'. Defaults to 30s.
+      responses:
+        '200':
+          description: Lock extended
+        '404':
+          description: Job not found, not owned by this client, or already terminated
+  /projects/{projectID}/bpmn/external-jobs/{executionKey}/complete:
+    post:
+      summary: Complete an external job
+      operationId: CompleteBpmnExternalJob
+      description: |
+        Finalizes an acquired external job successfully. The supplied
+        `variables` are merged into the originating instance's scope and the
+        process resumes after the service task. Idempotent on the executionKey:
+        a second call with the same key after success is a no-op.
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workflowID
+              properties:
+                workflowID:
+                  type: string
+                  description: Workflow ID returned by the poll response.
+                variables:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/external-jobs/{executionKey}/error:
+    post:
+      summary: Fail an external job with a BPMN error code
+      operationId: ThrowBpmnExternalJobError
+      description: |
+        Reports that the worker could not handle the job. The `errorCode` is
+        raised as a BPMN error, triggering any matching boundary error event
+        on the originating service task. If the job has remaining retries it
+        is requeued; otherwise the originating instance gets an incident.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - errorCode
+              properties:
+                errorCode:
+                  type: string
+                variables:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/external-jobs/batch/complete:
+    post:
+      summary: Complete External Jobs in Batch
+      operationId: CompleteBpmnExternalJobsBatch
+      description: |
+        Completes a batch of external jobs in one request. Each item is
+        delivered to its instance in parallel and per-item status is returned
+        so a partial failure does not sink the whole batch.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  items:
+                    type: object
+                    required:
+                      - executionKey
+                      - workflowID
+                    properties:
+                      executionKey:
+                        type: string
+                      workflowID:
+                        type: string
+                      variables:
+                        type: object
+                        additionalProperties: true
+      responses:
+        '200':
+          description: Per-item batch result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalJobBatchResponse'
+  /projects/{projectID}/bpmn/external-jobs/batch/error:
+    post:
+      summary: Fail external jobs in batch
+      operationId: ThrowBpmnExternalJobErrorsBatch
+      description: |
+        Reports a batch of worker failures in one request. Each item's
+        remaining retry budget determines whether it requeues for another
+        attempt or surfaces as an incident on the originating instance.
+        Per-item status is returned so a partial failure does not sink the
+        whole batch.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - items
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  maxItems: 200
+                  items:
+                    type: object
+                    required:
+                      - executionKey
+                      - workflowID
+                      - errorCode
+                    properties:
+                      executionKey:
+                        type: string
+                      workflowID:
+                        type: string
+                      errorCode:
+                        type: string
+                      variables:
+                        type: object
+                        additionalProperties: true
+      responses:
+        '200':
+          description: Per-item batch result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalJobBatchResponse'
+  /projects/{projectID}/bpmn/user-tasks:
+    get:
+      summary: List User Tasks
+      operationId: ListBpmnUserTasks
+      description: |
+        Paginated list of user tasks for the project, optionally filtered by
+        workflow, status, assignee, candidate user or candidate group.
+        Requires Executor role on the project.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - CREATED
+              - COMPLETED
+              - CANCELED
+              - FAILED
+        - name: assignee
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: candidateUser
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: candidateGroup
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnUserTaskPaginatedResponse'
+  /projects/{projectID}/bpmn/user-tasks/me:
+    get:
+      summary: List User Tasks for the Caller
+      operationId: ListBpmnUserTasksForCaller
+      description: |
+        Returns CREATED user tasks the caller can act on: directly assigned,
+        listed in `candidateUsers`, or whose `candidateGroups` overlap any of
+        the caller's identity-provider groups. Requires Viewer role on the project.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnUserTaskPaginatedResponse'
+  /projects/{projectID}/bpmn/user-tasks/{executionKey}:
+    get:
+      summary: Get User Task
+      operationId: GetBpmnUserTask
+      description: |
+        Fetch a single user task by execution key. Allowed for callers with
+        Executor (or higher) role on the project, OR for callers who are the
+        task's assignee, listed in candidateUsers, or whose identity groups
+        overlap candidateGroups — same access semantics as Complete and Error.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTask'
+        '403':
+          description: Forbidden — caller is not Executor and not assigned to the task
         '404':
           description: Not Found
+    patch:
+      summary: Update User Task Assignment
+      operationId: UpdateBpmnUserTaskAssignment
+      description: |
+        Reassign / change candidates on a CREATED user task. Returns 404 if the
+        task does not exist or is no longer in CREATED state. Requires Executor
+        role on the project.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserTaskAssignmentRequest'
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/UserTask'
+        '404':
+          description: Not Found
+  /projects/{projectID}/bpmn/user-tasks/{executionKey}/complete:
+    post:
+      summary: Complete User Task
+      operationId: CompleteBpmnUserTask
+      description: |
+        Complete a user task with the given variables. Allowed for callers with
+        Executor (or higher) role on the project, OR for callers who are the
+        task's assignee, listed in candidateUsers, or whose identity groups
+        overlap candidateGroups.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden — caller is not Executor and not assigned to the task
+        '404':
+          description: User task not found
+  /projects/{projectID}/bpmn/user-tasks/{executionKey}/error:
+    post:
+      summary: Fail a user task with a BPMN error code
+      operationId: ThrowBpmnUserTaskError
+      description: |
+        Reports that the assignee could not complete the task. The `errorCode`
+        is raised from the user-task node so any matching boundary error event
+        can take over the failure path. Same access semantics as Complete.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: executionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - errorCode
+              properties:
+                errorCode:
+                  type: string
+                variables:
+                  type: object
+                  additionalProperties: true
+      responses:
+        '200':
+          description: OK
+        '403':
+          description: Forbidden — caller is not Executor and not assigned to the task
+        '404':
+          description: User task not found
+  /projects/{projectID}/bpmn/messages:
+    post:
+      summary: Publish a BPMN message
+      operationId: PublishBpmnMessage
+      description: |
+        Publishes a message into the project. Each message is delivered to at
+        most one waiting catch event whose subscription matches `messageName`
+        and whose correlation keys are a subset of `correlationKeys`. If no
+        subscriber is currently waiting the message is buffered up to its TTL
+        and delivered to the first matching subscriber that registers.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - messageName
+              properties:
+                messageName:
+                  type: string
+                  description: Name of the message, matched against catch-event subscriptions.
+                correlationKeys:
+                  $ref: '#/components/schemas/CorrelationKeys'
+                variables:
+                  type: object
+                  description: Variables to pass into the receiving instance when the message is delivered.
+                  additionalProperties: true
+                ttl:
+                  type: string
+                  description: |
+                    Optional time-to-live for the buffered message. Accepted
+                    forms: ISO 8601 duration (`PT1H`, `P1DT12H`), Go duration
+                    (`1h30m`), or RFC 3339 absolute timestamp
+                    (`2026-12-31T23:59:59Z`). Omitted/empty applies the
+                    server's 1-hour default.
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/signals:
+    post:
+      summary: Publish a BPMN signal
+      operationId: PublishBpmnSignal
+      description: |
+        Publishes a signal into the project. Unlike messages, signals are
+        broadcast: every catch event whose subscription matches `signalName`
+        receives the signal. Published signals are buffered for 24 hours, so
+        subscribers that register within that window also receive the signal
+        (after that the buffered copy is purged).
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - signalName
+              properties:
+                signalName:
+                  type: string
+                  description: Name of the signal, matched against catch-event subscriptions.
+                variables:
+                  type: object
+                  description: Variables to pass into each receiving instance.
+                  additionalProperties: true
+                ttl:
+                  type: string
+                  description: |
+                    How long the published signal stays buffered for late
+                    subscribers. Accepted forms: ISO 8601 duration (`PT1H`,
+                    `P1DT12H`), Go duration (`1h30m`), or RFC 3339 absolute
+                    timestamp (`2026-12-31T23:59:59Z`). Omitted/empty applies
+                    the server's 24-hour default.
+      responses:
+        '200':
+          description: OK
+  /projects/{projectID}/bpmn/processes:
+    get:
+      summary: List BPMN processes
+      operationId: ListBpmnProcesses
+      description: |
+        Returns one entry per unique process ID with aggregated counts of
+        running and completed instances across all deployed versions. Use
+        `ListBpmnProcessVersions` to drill into specific versions.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional case-insensitive substring match against process id or process name.
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            Bounds the totalCount aggregate to instances created at or after this
+            timestamp. Strongly recommended for monitoring views — instance
+            history accumulates indefinitely and unfiltered totals scan the full
+            table per definition. runningCount ignores this filter (it is always
+            point-in-time).
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnProcessSummaryPaginatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '500':
-          description: Internal Server Error
+          $ref: '#/components/responses/InternalError'
+  /projects/{projectID}/bpmn/processes/{processID}/versions:
+    get:
+      summary: List deployed versions of a BPMN process
+      operationId: ListBpmnProcessVersions
+      description: |
+        Returns each deployed version of a single process with its instance
+        counts. Useful for picking the source/target version when migrating
+        running instances.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: processID
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            Bounds the totalCount aggregate to instances created at or after this
+            timestamp. See ListBpmnProcesses for rationale. runningCount ignores
+            this filter.
+      responses:
+        '200':
+          description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-
+                $ref: '#/components/schemas/BpmnProcessVersionPaginatedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
 components:
   schemas:
-    FrontendConfig:
-      type: object
-      required:
-        - oidc
-      properties:
-        oidc:
-          type: object
-          required:
-            - authority
-            - clientId
-          properties:
-            authority:
-              type: string
-              description: OIDC authority URL (issuer)
-              example: "http://localhost:8080"
-            clientId:
-              type: string
-              description: OIDC client ID for the web application
-              example: "123456789@dmn-engine"
-        paddle:
-          type: object
-          properties:
-            clientToken:
-              type: string
-              description: Paddle client-side token for checkout
-              example: "test_..."
-            sandbox:
-              type: boolean
-              description: Whether to use Paddle sandbox environment
-              example: true
-
-    BatchEvaluateDesignRequest:
-      type: object
-      properties:
-        xml:
-          type: string
-          description: The DMN XML definition to evaluate
-        inputs:
-          type: array
-          description: List of input contexts (rows) to evaluate
-          items:
-             type: object
-             additionalProperties: true
-
-    BatchEvaluationResponse:
-      type: object
-      properties:
-        results:
-          type: array
-          items:
-            type: object
-            properties:
-              executionId:
-                type: string
-              inputs:
-                type: object
-                additionalProperties: true
-              results:
-                 type: object
-                 additionalProperties:
-                   $ref: '#/components/schemas/EvaluationResult'
-
-    Error:
-      type: object
-      properties:
-        code:
-          type: integer
-          format: int32
-        message:
-          type: string
-
-    Project:
-      type: object
-      required:
-        - id
-        - name
-        - customer_id
-        - schema_name
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        customer_id:
-          type: string
-          format: uuid
-        schema_name:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-        updated_at:
-          type: string
-          format: date-time
-
-    CreateProjectRequest:
-      type: object
-      required:
-        - name
-        - customer_id
-      properties:
-        name:
-          type: string
-        customer_id:
-          type: string
-          format: uuid
-
-    Definition:
-      type: object
-      required:
-        - id
-        - name
-        - definition_id
-        - xml
-        - version
-        - created_at
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        definition_id:
-          type: string
-        xml:
-          type: string
-        version:
-          type: integer
-        created_by:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-
-    CreateDefinitionRequest:
-      type: object
-      required:
-        - name
-        - xml
-      properties:
-        name:
-          type: string
-        xml:
-          type: string
-        version:
-          type: integer
-
-    UpdateDefinitionRequest:
-      type: object
-      properties:
-        xml:
-          type: string
-        version:
-          type: integer
-        name:
-          type: string
-
-
-    EvaluateStoredRequest:
-      type: object
-      required:
-        - context
-      properties:
-        version:
-          type: integer
-        context:
-          $ref: '#/components/schemas/FeelContext'
-        businessId:
-          type: string
-          description: "Optional identifier for the business object being processed. If provided, existing metrics for this businessId and XML Definition ID will be replaced."
-        decisionServices:
-          type: array
-          items:
-            type: string
-          description: Names of the Decision Services to evaluate (optional)
-        decisions:
-          type: array
-          items:
-             type: string
-          description: List of Decision or Decision Service names to evaluate (optional)
-
-    SimulationRequest:
-      type: object
-      required:
-        - xml
-      properties:
-        xml:
-          type: string
-          description: The DMN XML definition to use for simulation
-        startDate:
-          type: string
-          format: date-time
-          description: Filter historical executions after this date (ISO 8601). If not provided, defaults to 24h.
-
-    SimulationResponse:
-      type: object
-      properties:
-        results:
-          type: array
-          items:
-            type: object
-            properties:
-              executionId:
-                type: string
-              executedAt:
-                 type: string
-                 format: date-time
-              inputs:
-                type: object
-                additionalProperties: true
-              results:
-                 type: object
-                 additionalProperties:
-                   $ref: '#/components/schemas/EvaluationResult'
-
+    FeelNumber:
+      type: number
+      description: FEEL number. Maps to a decimal value at runtime.
+    FeelString:
+      type: string
+      description: FEEL string. Date, time, and duration values are also represented as strings using the FEEL textual forms (e.g. `"2026-01-31"`, `"PT1H"`).
+    FeelBoolean:
+      type: boolean
+      description: FEEL boolean.
     FeelValue:
+      description: A FEEL-typed value as it appears in DMN inputs and outputs. May be a number, string, boolean, list, or nested context.
       oneOf:
         - $ref: '#/components/schemas/FeelNumber'
         - $ref: '#/components/schemas/FeelString'
@@ -1558,137 +2618,196 @@ components:
         - $ref: '#/components/schemas/FeelList'
         - $ref: '#/components/schemas/FeelContext'
       nullable: true
-
-    FeelNumber:
-      type: number
-      description: "FEEL number (decimal)"
-
-    FeelString:
-      type: string
-      description: "FEEL string, date, time, duration, etc."
-
-    FeelBoolean:
-      type: boolean
-      description: "FEEL boolean"
-
     FeelList:
       type: array
+      description: FEEL list. Lists may contain mixed types.
       items:
         $ref: '#/components/schemas/FeelValue'
-
     FeelContext:
       type: object
+      description: FEEL context (a name → value map). The DMN equivalent of an object.
       additionalProperties:
         $ref: '#/components/schemas/FeelValue'
-
-    Execution:
+    HitRule:
       type: object
-      required:
-        - id
-        - definition_id
-        - executed_at
-        - inputs
-        - outputs
+      description: A single rule that matched during decision-table evaluation.
       properties:
-        id:
+        ruleID:
           type: string
-          format: uuid
-        definition_id:
-          type: string
-          format: uuid
-        executed_at:
-          type: string
-          format: date-time
-        executed_by:
-          type: string
-        inputs:
-          $ref: '#/components/schemas/FeelContext'
+          description: ID of the matched rule from the DMN XML.
         outputs:
           $ref: '#/components/schemas/FeelValue'
-        xml_definition_id:
-          type: string
-
-
-    Tier:
-      type: object
-      required:
-        - id
-        - name
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        price:
-          type: number
-        features:
-          $ref: '#/components/schemas/TierFeaturesConfig'
-        paddlePriceId:
-          type: string
-
-    TierFeaturesConfig:
-      type: object
-      properties:
-        credits:
-          type: integer
-        overchargePricePer100Credits:
-          type: integer
-        limits:
-          $ref: '#/components/schemas/TierLimits'
-        features:
-          $ref: '#/components/schemas/FeatureFlags'
-
-    TierLimits:
-      type: object
-      properties:
-        projects:
-          type: integer
-        seats:
-          type: integer
-        definitionsPerProject:
-          type: integer
-        historyRetentionDays:
-          type: integer
-
-    FeatureFlags:
-      type: object
-      additionalProperties:
-        type: boolean
-
     EvaluationResult:
       type: object
+      description: Result of evaluating a single decision (or decision service / BKM / input data) within a DMN evaluation.
       properties:
-        decisionId:
+        decisionID:
           type: string
+          description: ID of the decision element from the DMN XML.
         name:
           type: string
+          description: Human-readable name of the decision.
         error:
           type: string
+          description: Error message if the decision failed to evaluate. Null on success.
           nullable: true
         type:
           type: string
-          enum: [DECISION, KPI, DECISION_SERVICE, BKM, INPUT_DATA]
+          description: |
+            Kind of DMN element that produced this result:
+              * `DECISION` — a decision node, the typical case.
+              * `DECISION_SERVICE` — a decision service that aggregates multiple decisions.
+              * `BKM` — a business knowledge model (reusable invocable logic).
+              * `INPUT_DATA` — an input variable, included for context, not evaluated.
+          enum:
+            - DECISION
+            - DECISION_SERVICE
+            - BKM
+            - INPUT_DATA
         value:
           $ref: '#/components/schemas/FeelValue'
         hitRules:
           type: array
+          description: For decision tables, the rules that matched. Empty for other decision logic.
           items:
-             $ref: '#/components/schemas/HitRule'
+            $ref: '#/components/schemas/HitRule'
         dependencies:
           type: array
+          description: Results of upstream decisions this decision required. Useful for tracing evaluation paths.
           items:
-             $ref: '#/components/schemas/EvaluationResult'
-
-    HitRule:
-       type: object
-       properties:
-          ruleID:
-             type: string
-          outputs:
-             $ref: '#/components/schemas/FeelValue'
-
+            $ref: '#/components/schemas/EvaluationResult'
+    Error:
+      type: object
+      description: A standard error response. The HTTP status code carries the broad category; `code` is the machine-readable identifier within that category.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: |
+            Machine-readable error category. Values:
+              * `BAD_REQUEST` — request is malformed or fails validation.
+              * `UNAUTHORIZED` — request lacks or has an invalid authentication token.
+              * `FORBIDDEN` — caller is authenticated but lacks permission, or has hit a quota.
+              * `NOT_FOUND` — the addressed resource does not exist.
+              * `INTERNAL_ERROR` — unexpected server-side failure.
+          enum:
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - INTERNAL_ERROR
+        message:
+          type: string
+          description: Human-readable description of the failure.
+        details:
+          type: object
+          description: Optional structured context (e.g. the field that failed validation, the limit that was exceeded). Shape is per-error and not generally guaranteed.
+          additionalProperties: true
+    BatchEvaluateDesignRequest:
+      type: object
+      description: Payload for batch evaluating ad-hoc DMN XML against multiple input rows.
+      properties:
+        xml:
+          type: string
+          description: DMN XML to evaluate.
+        inputs:
+          type: array
+          description: One input context per row to evaluate.
+          items:
+            type: object
+            additionalProperties: true
+    BatchEvaluationResponse:
+      type: object
+      description: Per-row results from a batch evaluation.
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              executionID:
+                type: string
+                description: Identifier assigned to this row's evaluation, useful for correlating with logs.
+              inputs:
+                type: object
+                description: The input row that produced these results, echoed for convenience.
+                additionalProperties: true
+              results:
+                type: object
+                description: Evaluation results keyed by decision name.
+                additionalProperties:
+                  $ref: '#/components/schemas/EvaluationResult'
+    Project:
+      type: object
+      description: A workspace that groups DMN definitions and BPMN processes together for access control and execution.
+      required:
+        - id
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique project identifier.
+        name:
+          type: string
+          description: Human-readable project name.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the project was created.
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp of the last modification.
+    CreateProjectRequest:
+      type: object
+      description: Payload for creating a new project. The owning account is inferred from the caller's authentication context.
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Human-readable project name.
+    Definition:
+      type: object
+      description: A stored DMN definition. Each call to CreateDefinition produces a new version of a `definitionsID`.
+      required:
+        - id
+        - name
+        - definitionsID
+        - xml
+        - version
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Platform identifier for this specific definition version.
+        name:
+          type: string
+          description: Human-readable name displayed in the UI.
+        definitionsID:
+          type: string
+          description: Stable identifier from the DMN XML's outer `<definitions id="…">` attribute. Shared across versions.
+        xml:
+          type: string
+          description: The DMN XML body.
+        version:
+          type: integer
+          description: Auto-incremented version number, starting at 1 for the first upload of a `definitionsID`.
+        createdBy:
+          type: string
+          description: User who uploaded this version.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when this version was uploaded.
     PaginationMetadata:
       type: object
+      description: Pagination metadata accompanying paginated list responses.
       required:
         - page
         - pageSize
@@ -1697,19 +2816,19 @@ components:
       properties:
         page:
           type: integer
-          description: Current page number (1-indexed)
+          description: Current page number (1-indexed).
         pageSize:
           type: integer
-          description: Number of items per page
+          description: Number of items per page.
         total:
           type: integer
-          description: Total number of items
+          description: Total number of items across all pages.
         totalPages:
           type: integer
-          description: Total number of pages
-
+          description: Total number of pages.
     PaginatedDefinitionsResponse:
       type: object
+      description: Page of DMN definition versions.
       required:
         - data
         - pagination
@@ -1720,120 +2839,91 @@ components:
             $ref: '#/components/schemas/Definition'
         pagination:
           $ref: '#/components/schemas/PaginationMetadata'
-
-    OverviewResponse:
+    CreateDefinitionRequest:
       type: object
-      properties:
-        stats:
-          type: object
-          properties:
-            totalCredits:
-              type: integer
-            requestsTrend:
-              type: array
-              items:
-                $ref: '#/components/schemas/DailyStat'
-            creditsTrend:
-               type: array
-               items:
-                 $ref: '#/components/schemas/DailyStat'
-            kpiTrends:
-               type: array
-               items:
-                 $ref: '#/components/schemas/KpiTrend'
-
-    Quota:
-      type: object
+      description: Payload for creating a new DMN definition version.
       required:
-        - tierId
+        - name
+        - xml
       properties:
-        tierId:
+        name:
           type: string
-          description: The ID of the current tier (e.g., developer, starter, scale)
-        credits:
-          $ref: '#/components/schemas/CreditsQuota'
-        history:
-          $ref: '#/components/schemas/QuotaItem'
-        projects:
-          $ref: '#/components/schemas/QuotaItem'
-        definitions:
-          $ref: '#/components/schemas/DefinitionsQuota'
-        users:
-          $ref: '#/components/schemas/QuotaItem'
-
-    CreditsQuota:
-      allOf:
-        - $ref: '#/components/schemas/QuotaItem'
-        - type: object
-          properties:
-            overchargePrice:
-              type: integer
-            overchargeEnabled:
-              type: boolean
-
-    DefinitionsQuota:
-      type: object
-      properties:
-        limit:
+          description: Display name.
+        xml:
+          type: string
+          description: DMN XML body.
+        version:
           type: integer
-          description: Max definitions allowed per project (tier limit)
-        projects:
+          description: Optional explicit version number. If omitted, the server assigns one.
+    EvaluateStoredRequest:
+      type: object
+      description: Payload for evaluating a stored DMN definition.
+      required:
+        - context
+      properties:
+        version:
+          type: integer
+          description: Specific definition version to evaluate. Defaults to the latest version.
+        context:
+          $ref: '#/components/schemas/FeelContext'
+        decisionServices:
           type: array
           items:
-            $ref: '#/components/schemas/ProjectUsage'
-
-    ProjectUsage:
+            type: string
+          description: Names of decision services to evaluate. If empty, no decision services are evaluated.
+        decisions:
+          type: array
+          items:
+            type: string
+          description: Names of decisions or decision services to evaluate. If empty, all decisions are evaluated.
+    UpdateDefinitionRequest:
       type: object
+      description: Payload for updating metadata on an existing definition version.
       properties:
-        projectId:
+        xml:
+          type: string
+          description: Replacement XML. The `definitionsID` and `version` from the original are preserved.
+        version:
+          type: integer
+          description: Optional explicit version override. Generally not used during update.
+        name:
+          type: string
+          description: New display name.
+    Execution:
+      type: object
+      description: A single recorded DMN evaluation against a stored definition.
+      required:
+        - id
+        - definitionID
+        - executedAt
+        - inputs
+        - outputs
+      properties:
+        id:
           type: string
           format: uuid
-        name:
+          description: Unique identifier of this execution.
+        definitionID:
           type: string
-        usage:
-          type: integer
-        limit:
-          type: integer
-
-    QuotaItem:
-      type: object
-      properties:
-        used:
-          type: integer
-        limit:
-          type: integer
-
-    DailyStat:
-       type: object
-       properties:
-         date:
-           type: string
-           format: date
-         requests:
-             type: integer
-         credits:
-             type: integer
-
-    KpiTrend:
-      type: object
-      properties:
-        kpiId:
+          format: uuid
+          description: Platform identifier of the definition version that was evaluated.
+        executedAt:
           type: string
-        name:
+          format: date-time
+          description: Timestamp when the evaluation ran.
+        executedBy:
           type: string
-        data:
-          type: array
-          items:
-            type: object
-            properties:
-              date:
-                type: string
-                format: date-time
-              value:
-                type: number
-
+          description: User or service account that issued the evaluation.
+        inputs:
+          $ref: '#/components/schemas/FeelContext'
+        outputs:
+          $ref: '#/components/schemas/FeelValue'
+        definitionsID:
+          type: string
+          description: The DMN XML's `<definitions id="…">` value, useful for grouping executions across versions.
     PaginatedExecutionsResponse:
       type: object
+      description: Page of recorded DMN executions.
       required:
         - data
         - pagination
@@ -1844,94 +2934,1007 @@ components:
             $ref: '#/components/schemas/Execution'
         pagination:
           $ref: '#/components/schemas/PaginationMetadata'
-
-    OrganizationUser:
+    DecisionInputField:
       type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Variable name the decision expects as input
+        typeRef:
+          type: string
+          description: DMN typeRef (e.g. string, number, boolean) when declared
+    DecisionSummary:
+      type: object
+      description: A unique decision in the project, surfaced for picking from BPMN BusinessRuleTask elements.
+      required:
+        - decisionID
+        - decisionName
+        - definitionsID
+        - definitionName
+        - latestVersion
+        - inputFields
+      properties:
+        decisionID:
+          type: string
+          description: ID of the decision node from the DMN XML (unique per project).
+        decisionName:
+          type: string
+          description: Human-readable name of the decision.
+        definitionsID:
+          type: string
+          description: Stable identifier from the DMN XML's outer `<definitions id="…">` attribute.
+        definitionName:
+          type: string
+          description: Human-readable name of the parent DMN definition.
+        latestVersion:
+          type: integer
+          description: Highest deployed version that contains this decision.
+        inputFields:
+          type: array
+          description: Declared input variables of the decision (from DMN `InformationRequirement` → `InputData`). Useful for prepopulating BPMN BusinessRuleTask input mappings. Empty when the decision declares no typed inputs.
+          items:
+            $ref: '#/components/schemas/DecisionInputField'
+    PaginatedDecisionsResponse:
+      type: object
+      description: Page of decisions.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DecisionSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    BpmnResource:
+      type: object
+      description: A version of a BPMN resource (XML file containing one or more processes).
+      required:
+        - id
+        - name
+        - xml
+        - definitionsID
+        - isDeployed
+        - createdBy
+        - createdAt
       properties:
         id:
           type: string
-        email:
-          type: string
-        firstName:
-          type: string
-        lastName:
-          type: string
-        username:
-          type: string
-
-    ProjectMember:
-      type: object
-      properties:
-        project_id:
-          type: string
           format: uuid
-        user_id:
+          description: Platform identifier for this specific resource version.
+        name:
           type: string
-        role:
+          description: Display name.
+        xml:
           type: string
-        username:
+          description: BPMN XML body.
+        definitionsID:
           type: string
-        email:
-          type: string
-        created_at:
+          description: Stable identifier from the BPMN XML's outer `<definitions id="…">` attribute. Shared across versions.
+        isDeployed:
+          type: boolean
+          description: True once the resource has been deployed and its processes are available to start instances.
+        deployedAt:
           type: string
           format: date-time
-
-    AddProjectMemberRequest:
+          description: Timestamp when the resource was deployed. Empty for drafts.
+        createdBy:
+          type: string
+          description: User who uploaded this version.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when this version was uploaded.
+    BpmnResourcePaginatedResponse:
       type: object
+      description: Page of BPMN resource versions.
       required:
-        - userID
-        - role
+        - data
+        - pagination
       properties:
-        userID:
-          type: string
-        role:
-          type: string
-
-    UpdateProjectMemberRoleRequest:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnResource'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    CreateBpmnResourceRequest:
       type: object
+      description: Payload for uploading a BPMN resource version.
       required:
-        - role
+        - name
+        - xml
       properties:
-        role:
+        name:
           type: string
-
-    UserPermissions:
+          description: Display name.
+        xml:
+          type: string
+          description: BPMN XML body.
+    BpmnProcessDefinition:
       type: object
+      description: A single deployable process parsed out of a BPMN resource.
       required:
-        - global_role
-        - projects
+        - id
+        - resourceID
+        - processID
+        - version
+        - createdAt
       properties:
-        global_role:
+        id:
           type: string
-          description: User's global organization role (admin or user)
-        projects:
+          format: uuid
+          description: Platform identifier of this process definition. Used as `processDefinitionID` when starting instances.
+        resourceID:
+          type: string
+          format: uuid
+          description: Platform identifier of the owning BPMN resource.
+        processID:
+          type: string
+          description: BPMN `id` attribute on the `<process>` element.
+        processName:
+          type: string
+          description: Human-readable name from the BPMN XML.
+        version:
+          type: integer
+          description: Process version. Auto-incremented per `processID` on deploy.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when this version became available.
+    BpmnResourceDetail:
+      description: A BPMN resource together with the parsed processes it contains.
+      allOf:
+        - $ref: '#/components/schemas/BpmnResource'
+        - type: object
+          properties:
+            processes:
+              type: array
+              description: Parsed processes inside the resource. Empty for resources whose XML has not been deployed yet.
+              items:
+                $ref: '#/components/schemas/BpmnProcessDefinition'
+    StartBpmnTestInstanceRequest:
+      type: object
+      description: Payload for starting a non-deployed BPMN process instance against a draft resource for testing.
+      properties:
+        processID:
+          type: string
+          description: BPMN process ID (the `id` attribute on `<bpmn:process>`) to start. Defaults to the first executable process in the resource.
+        variables:
           type: object
-          additionalProperties:
-            $ref: '#/components/schemas/ProjectPermissions'
-          description: Map of projectID to project permissions
-
-    ProjectPermissions:
+          description: Initial process variables.
+          additionalProperties: true
+    BpmnResourceSummary:
       type: object
+      description: One entry per BPMN definitionsID showing the latest version's metadata.
       required:
-        - role
-        - can_manage_members
-        - can_edit_definitions
-        - can_execute
-        - can_view
+        - definitionsID
+        - latestResourceID
+        - name
+        - versionCount
+        - isDeployed
+        - createdAt
       properties:
-        role:
+        definitionsID:
           type: string
-          description: Project role (admin, editor, executor, viewer)
-        can_manage_members:
+          description: Stable BPMN definitions identifier.
+        latestResourceID:
+          type: string
+          format: uuid
+          description: Platform identifier of the latest resource version under this `definitionsID`.
+        name:
+          type: string
+          description: Display name from the latest version.
+        versionCount:
+          type: integer
+          description: Total number of stored versions for this `definitionsID`.
+        isDeployed:
           type: boolean
-        can_edit_definitions:
+          description: Whether the latest version is deployed.
+        createdAt:
+          type: string
+          format: date-time
+          description: Upload timestamp of the latest version.
+    BpmnResourceSummaryPaginatedResponse:
+      type: object
+      description: Page of BPMN resource summaries.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnResourceSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    ValidateBpmnResourceRequest:
+      type: object
+      description: Payload for the BPMN XML validator.
+      required:
+        - xml
+      properties:
+        xml:
+          type: string
+          description: BPMN XML to validate.
+    BpmnValidationIssue:
+      type: object
+      description: A single validation finding produced while parsing BPMN XML.
+      required:
+        - severity
+        - message
+      properties:
+        severity:
+          type: string
+          description: Severity of the issue. `error` blocks deploy; `warning` is informational.
+          enum:
+            - error
+            - warning
+        elementID:
+          type: string
+          description: ID of the BPMN element the issue is about. Empty for issues that aren't tied to a specific element.
+        message:
+          type: string
+          description: Human-readable description of the issue.
+    BpmnValidateResponse:
+      type: object
+      description: Result of validating BPMN XML, separated into blocking errors and informational warnings.
+      required:
+        - errors
+        - warnings
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnValidationIssue'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnValidationIssue'
+    BpmnInstance:
+      type: object
+      description: A running or completed execution of a BPMN process.
+      required:
+        - definitionID
+        - workflowID
+        - status
+        - createdAt
+      properties:
+        definitionID:
+          type: string
+          format: uuid
+          description: ID of the deployed BPMN process definition this instance is running.
+        workflowID:
+          type: string
+          description: Stable execution identifier for this instance. Use this to address the instance in all API calls — fetch state, send signals/messages, complete user tasks, list children, cancel, etc.
+        parentWorkflowID:
+          type: string
+          description: Execution identifier of the parent instance that started this one via a CallActivity. Empty for top-level instances.
+        status:
+          type: string
+          description: Current lifecycle status of the instance.
+          enum:
+            - RUNNING
+            - COMPLETED
+            - FAILED
+            - CANCELED
+            - TERMINATED
+            - TIMED_OUT
+        startedBy:
+          type: string
+          description: User or service account that initiated the instance.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the instance was started.
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the instance reached a terminal status. Empty while running.
+    BpmnInstancePaginatedResponse:
+      type: object
+      description: Page of BPMN process instances.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnInstance'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    StartBpmnInstanceRequest:
+      type: object
+      description: Payload for starting a new BPMN process instance.
+      required:
+        - processDefinitionID
+      properties:
+        processDefinitionID:
+          type: string
+          format: uuid
+          description: ID of a deployed `BpmnProcessDefinition` to start.
+        variables:
+          type: object
+          description: Initial process variables. Available to FEEL expressions and service tasks from the first activity onward.
+          additionalProperties: true
+    BpmnActivityState:
+      type: object
+      description: Execution record for a single BPMN activity (service task, user task, gateway, etc.).
+      properties:
+        nodeID:
+          type: string
+          description: ID of the BPMN flow node.
+        nodeType:
+          type: string
+          description: Type of the BPMN node (e.g. ServiceTask, UserTask, ExclusiveGateway).
+        status:
+          type: string
+          description: Execution outcome — Started, Completed, Failed, or Canceled.
+          enum:
+            - Started
+            - Completed
+            - Failed
+            - Canceled
+        startTime:
+          type: integer
+          format: int64
+          description: Unix epoch nanoseconds when execution began.
+        endTime:
+          type: integer
+          format: int64
+          description: Unix epoch nanoseconds when execution ended; 0 if still running.
+        inputs:
+          type: object
+          description: Input variables evaluated at activity entry.
+          additionalProperties: true
+        outputs:
+          type: object
+          description: Output variables produced by the activity.
+          additionalProperties: true
+        executionKey:
+          type: string
+          description: Unique key identifying this execution (used to correlate external jobs).
+        childWorkflowID:
+          type: string
+          description: For CallActivity nodes, the execution identifier of the child instance spawned by this execution. Empty for non-CallActivity nodes and for the brief window between activity start and child instance startup.
+    BpmnIncident:
+      type: object
+      description: An error that halted execution of a BPMN node and requires manual resolution.
+      properties:
+        incidentID:
+          type: string
+          description: Unique identifier of this incident.
+        nodeID:
+          type: string
+          description: ID of the BPMN node where the error occurred.
+        scopeID:
+          type: string
+          description: ID of the scope in which the error occurred.
+        executionKey:
+          type: string
+          description: Execution key of the activity that failed.
+        errorMessage:
+          type: string
+          description: Human-readable description of the error.
+        errorCode:
+          type: string
+          description: BPMN error code from the process definition; empty for non-BPMN errors.
+        errorType:
+          type: string
+          description: |
+            Category of the error. Values:
+              * `BpmnError` — A `bpmn:error` thrown by the process or an external job worker.
+              * `EscalationError` — A `bpmn:escalation` raised by the process.
+              * `CompensationError` — Failure during compensation handler execution.
+              * `FeelError` — A FEEL expression failed to evaluate.
+              * `NoHandler` — A thrown error/escalation has no matching catch event.
+              * `GatewayNoMatch` — An exclusive gateway evaluated all conditions to false with no default flow.
+              * `TimerResolution` — A timer expression could not be parsed or resolved.
+              * `LinkNotFound` — A link throw event has no matching link catch.
+              * `MigrationError` — A process instance migration could not be applied.
+              * `Unknown` — Internal error not classified above.
+          enum:
+            - BpmnError
+            - EscalationError
+            - CompensationError
+            - FeelError
+            - NoHandler
+            - GatewayNoMatch
+            - TimerResolution
+            - LinkNotFound
+            - MigrationError
+            - Unknown
+        variables:
+          type: object
+          description: Variables in scope at the time of the error.
+          additionalProperties: true
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix epoch milliseconds when the incident was recorded.
+    ActiveScope:
+      type: object
+      description: A scope (sub-process, multi-instance body, or root process) that currently holds at least one live execution token.
+      properties:
+        scopeID:
+          type: string
+          description: Unique identifier of this scope instance.
+        parentScopeID:
+          type: string
+          description: ID of the parent scope, empty for the root scope.
+        nodeID:
+          type: string
+          description: ID of the BPMN element that created this scope (e.g. a sub-process node). Empty for the root scope.
+        activeNodes:
+          type: array
+          description: IDs of flow nodes that currently hold live tokens within this scope.
+          items:
+            type: string
+        processVersion:
+          type: integer
+          description: Version of the process definition active in this scope.
+        variables:
+          type: object
+          description: Variables scoped to this instance, excluding inherited parent-scope variables.
+          additionalProperties: true
+    BpmnInstanceState:
+      type: object
+      description: Full runtime state of a BPMN process instance.
+      required:
+        - resourceID
+      properties:
+        resourceID:
+          type: string
+          format: uuid
+          description: ID of the BPMN resource (definition file) that produced this instance.
+        workflowID:
+          type: string
+          description: Execution identifier for this instance.
+        parentWorkflowID:
+          type: string
+          description: Execution identifier of the parent instance that started this one via a CallActivity. Empty for top-level instances.
+        status:
+          type: string
+          description: Current lifecycle status of the instance (e.g. RUNNING, COMPLETED, FAILED, TERMINATED).
+        variables:
+          type: object
+          description: All variables currently in scope for the root process.
+          additionalProperties: true
+        history:
+          type: array
+          description: Ordered list of activity execution records.
+          items:
+            $ref: '#/components/schemas/BpmnActivityState'
+        error:
           type: boolean
-        can_execute:
+          description: True when the instance has an unresolved incident.
+        incidents:
+          type: array
+          description: Active incidents that require resolution before the process can continue.
+          items:
+            $ref: '#/components/schemas/BpmnIncident'
+        activeScopes:
+          type: array
+          description: Scopes that currently hold at least one live token.
+          items:
+            $ref: '#/components/schemas/ActiveScope'
+        failureReason:
+          type: string
+          description: Error message from the workflow when status is FAILED.
+    BpmnInstanceChildrenResponse:
+      type: object
+      description: Child instances spawned by a parent instance via CallActivity elements.
+      required:
+        - children
+      properties:
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnInstance'
+    ElementMapping:
+      type: object
+      description: Maps a BPMN flow node from the source process version to the corresponding node in the target version during migration.
+      required:
+        - sourceElementID
+        - targetElementID
+      properties:
+        sourceElementID:
+          type: string
+          description: BPMN element id in the running instance's current process version.
+        targetElementID:
+          type: string
+          description: BPMN element id in the target process version.
+    MigrateBpmnInstanceRequest:
+      type: object
+      description: Payload for migrating a running instance to a different version of its process.
+      required:
+        - targetVersion
+      properties:
+        targetVersion:
+          type: integer
+          description: Version of the same process to migrate to.
+        elementMappings:
+          type: array
+          description: Mappings for elements that have been renamed between versions. Elements with the same id in source and target are matched implicitly.
+          items:
+            $ref: '#/components/schemas/ElementMapping'
+        variables:
+          type: object
+          description: Variables to merge into the instance scope as part of the migration. Useful for filling in inputs introduced in the target version.
+          additionalProperties: true
+    MigrationValidationResult:
+      type: object
+      description: Outcome of validating a migration plan without executing it.
+      properties:
+        valid:
           type: boolean
-        can_view:
-          type: boolean
+          description: True when the plan can be applied as-is.
+        issues:
+          type: array
+          description: Human-readable descriptions of problems that would prevent migration.
+          items:
+            type: string
+    ModificationInstruction:
+      type: object
+      description: A single token-level operation applied to a running instance during a modification.
+      required:
+        - type
+        - nodeID
+      properties:
+        type:
+          type: string
+          description: |
+            Kind of operation:
+              * `START_BEFORE_NODE` — activate `nodeID` in the given scope, optionally seeding `variables` first.
+              * `CANCEL_TOKEN` — cancel the active token at `nodeID` in the given scope.
+          enum:
+            - START_BEFORE_NODE
+            - CANCEL_TOKEN
+        nodeID:
+          type: string
+          description: BPMN flow node id the instruction targets.
+        scopeID:
+          type: string
+          description: Scope to apply the instruction in. Empty applies to the root process scope.
+        variables:
+          type: object
+          description: Variables to inject into the scope for `START_BEFORE_NODE`.
+          additionalProperties: true
+    ModifyBpmnInstanceRequest:
+      type: object
+      description: Payload for an ad-hoc modification of a running instance. Instructions are applied in order.
+      required:
+        - instructions
+      properties:
+        instructions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModificationInstruction'
+    ExternalJob:
+      type: object
+      description: A unit of work emitted by a BPMN service task that an external worker is expected to handle.
+      required:
+        - id
+        - executionKey
+        - workflowID
+        - nodeID
+        - taskType
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of this job record.
+        executionKey:
+          type: string
+          description: Stable key for the activity execution that produced the job. Used as the path parameter when completing or failing the job.
+        workflowID:
+          type: string
+          description: Identifier of the instance that produced the job. Required when calling Complete / ThrowError.
+        nodeID:
+          type: string
+          description: ID of the BPMN service-task node.
+        taskType:
+          type: string
+          description: Worker selector. Workers poll for jobs by `taskType`.
+        variables:
+          type: object
+          description: Input variables resolved by the service task at activity entry.
+          additionalProperties: true
+        parentWorkflowID:
+          type: string
+          description: Identifier of the parent instance (set when the producing instance was started by a CallActivity).
+        status:
+          type: string
+          description: Lifecycle status of the job.
+          enum:
+            - PENDING
+            - COMPLETED
+            - CANCELED
+            - FAILED
+        retries:
+          type: integer
+          description: Remaining retry budget. Decremented each time the worker reports a failure that the BPMN model maps to a retry.
+        headers:
+          type: object
+          description: Static metadata attached at design time on the service task. Available to workers but not merged back into the instance.
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the job was created.
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the job reached a terminal status.
+        lockedBy:
+          type: string
+          description: Worker `clientID` that currently holds the exclusive lock on the job.
+        lockExpiresAt:
+          type: string
+          format: date-time
+          description: Time at which the lock will be released if not extended via Heartbeat.
+        cancelReason:
+          type: string
+          description: Best-effort label describing why a CANCELED job was interrupted (e.g. instance cancelled, instance terminated).
+    BpmnExternalJobPaginatedResponse:
+      type: object
+      description: Page of external jobs.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalJob'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    ExternalJobQueueDepthItem:
+      type: object
+      description: PENDING job count for a single task type.
+      required:
+        - taskType
+        - pendingCount
+      properties:
+        taskType:
+          type: string
+        pendingCount:
+          type: integer
+          format: int64
+    ExternalJobQueueDepthResponse:
+      type: object
+      description: Per-task-type breakdown of pending external jobs.
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalJobQueueDepthItem'
+    ExternalJobActiveWorkersItem:
+      type: object
+      description: Active long-poll worker count for a single task type.
+      required:
+        - taskType
+        - activeWorkers
+      properties:
+        taskType:
+          type: string
+        activeWorkers:
+          type: integer
+    ExternalJobActiveWorkersResponse:
+      type: object
+      description: Per-task-type breakdown of currently-connected job workers.
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalJobActiveWorkersItem'
+    PollBpmnJobRequest:
+      type: object
+      description: Long-poll request for external jobs.
+      required:
+        - taskType
+        - clientID
+      properties:
+        taskType:
+          type: string
+          description: Selector for the kind of work the worker handles.
+        clientID:
+          type: string
+          description: Stable identifier for this worker. Used to attribute job locks and to count active workers.
+        lockDuration:
+          type: string
+          description: Exclusive lock duration on each acquired job. Accepts Go duration strings (e.g. `5s`, `2m`). Defaults to `30s`.
+        timeout:
+          type: string
+          description: How long to wait for a job before returning 204. Accepts Go duration strings. Defaults to `30s`.
+        maxJobs:
+          type: integer
+          description: Maximum number of jobs to acquire in one call. Defaults to 1, capped at 100.
+    ExternalJobBatchResponse:
+      type: object
+      description: Per-item result of a batch complete or batch error call.
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required:
+              - executionKey
+              - status
+            properties:
+              executionKey:
+                type: string
+                description: The execution key of the item from the request.
+              status:
+                type: string
+                description: |
+                  Outcome for this item:
+                    * `completed` — the job was completed successfully.
+                    * `failed` — the job exhausted its retries and surfaced as an incident.
+                    * `requeued` — a retry budget remained, the job is back in PENDING.
+                    * `error` — the per-item operation itself failed; the job's state is unchanged.
+                enum:
+                  - completed
+                  - failed
+                  - requeued
+                  - error
+              error:
+                type: string
+                description: When `status` is `error`, a human-readable description of the failure.
+    UserTask:
+      type: object
+      description: A human-handled work item produced by a BPMN user task or manual task.
+      required:
+        - id
+        - executionKey
+        - workflowID
+        - nodeID
+        - status
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of this user task record.
+        executionKey:
+          type: string
+          description: Stable key for the activity execution. Used as the path parameter when completing or failing the task.
+        workflowID:
+          type: string
+          description: Identifier of the instance that produced the task.
+        parentWorkflowID:
+          type: string
+          description: Identifier of the parent instance (set when the producing instance was started by a CallActivity).
+        nodeID:
+          type: string
+          description: ID of the BPMN node that emitted the task.
+        taskType:
+          type: string
+          description: BPMN element type — typically `UserTask` or `ManualTask`.
+        assignee:
+          type: string
+          description: User the task is currently assigned to. Empty when the task is in a candidate pool but not yet claimed.
+        candidateUsers:
+          type: array
+          description: Users who may claim or complete this task even when no `assignee` is set.
+          items:
+            type: string
+        candidateGroups:
+          type: array
+          description: Identity-provider groups whose members may claim or complete this task.
+          items:
+            type: string
+        formKey:
+          type: string
+          description: Static form reference declared on the task (BPMN `formKey`). Resolved by the consumer to display the right UI.
+        formID:
+          type: string
+          description: Resolved internal form identifier when `formKey` matches a stored form definition.
+        variables:
+          type: object
+          description: Input variables resolved at activity entry. Available for rendering form defaults.
+          additionalProperties: true
+        headers:
+          type: object
+          description: Static metadata attached at design time on the user task.
+          additionalProperties:
+            type: string
+        status:
+          type: string
+          description: Lifecycle status of the task.
+          enum:
+            - CREATED
+            - COMPLETED
+            - CANCELED
+            - FAILED
+        cancelReason:
+          type: string
+          description: Best-effort label describing why a CANCELED task was interrupted (e.g. instance cancelled, boundary event interrupted).
+        errorCode:
+          type: string
+          description: BPMN error code captured when the task was failed via ThrowError. Set only for FAILED tasks.
+        completionVariables:
+          type: object
+          description: Variables submitted alongside the completion or error call. Set for COMPLETED and FAILED tasks.
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the task was created.
+        completedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the task reached a terminal status.
+    BpmnUserTaskPaginatedResponse:
+      type: object
+      description: Page of user tasks.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserTask'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    UpdateUserTaskAssignmentRequest:
+      type: object
+      description: |
+        Reassign a CREATED user task. All fields are optional but at least one
+        must be present. Fields are REPLACED atomically — pass the full set of
+        candidateUsers / candidateGroups you want stored, not a delta.
+      properties:
+        assignee:
+          type: string
+          nullable: true
+          description: New assignee. Pass null to clear.
+        candidateUsers:
+          type: array
+          items:
+            type: string
+        candidateGroups:
+          type: array
+          items:
+            type: string
+    CorrelationKeyString:
+      type: string
+      description: A scalar string correlation value.
+    CorrelationKeyNumber:
+      type: number
+      description: A scalar numeric correlation value.
+    CorrelationKeyBoolean:
+      type: boolean
+      description: A scalar boolean correlation value.
+    CorrelationKeyMap:
+      type: object
+      description: A multi-key correlation value, used when the subscription's correlation expression resolves to a context.
+      additionalProperties: true
+    CorrelationKeys:
+      description: |
+        Selects which subscription(s) receive a published message.
 
+        The provided value — primitive (string, number, boolean) or object —
+        is matched against the subscription's resolved correlation value.
+        Matching is type-sensitive (the number `123` does not match the
+        string `"123"`); for objects, the publisher's keys must be a
+        recursive subset of the subscription's stored keys.
+
+        Empty / omitted broadcasts to subscriptions with no correlation
+        requirement.
+      oneOf:
+        - $ref: '#/components/schemas/CorrelationKeyString'
+        - $ref: '#/components/schemas/CorrelationKeyNumber'
+        - $ref: '#/components/schemas/CorrelationKeyBoolean'
+        - $ref: '#/components/schemas/CorrelationKeyMap'
+    BpmnProcessSummary:
+      type: object
+      description: Aggregated counts for a process across all of its deployed versions.
+      required:
+        - processID
+        - processName
+        - versionCount
+        - runningCount
+        - totalCount
+      properties:
+        processID:
+          type: string
+          description: BPMN process id.
+        processName:
+          type: string
+          description: Human-readable process name.
+        versionCount:
+          type: integer
+          description: Number of deployed versions of this process.
+        runningCount:
+          type: integer
+          description: Instances with status RUNNING across all versions.
+        totalCount:
+          type: integer
+          description: All instances across all versions.
+    BpmnProcessSummaryPaginatedResponse:
+      type: object
+      description: Page of process summaries.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnProcessSummary'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    BpmnProcessVersion:
+      type: object
+      description: One deployed version of a process, with instance counts.
+      required:
+        - id
+        - resourceID
+        - resourceName
+        - processID
+        - processName
+        - version
+        - createdAt
+        - runningCount
+        - totalCount
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Platform identifier of this process definition version. Use it to filter instances or as the source/target of a migration.
+        resourceID:
+          type: string
+          format: uuid
+          description: Owning BPMN resource version.
+        resourceName:
+          type: string
+          description: Display name of the owning resource.
+        processID:
+          type: string
+          description: BPMN process id.
+        processName:
+          type: string
+          description: Human-readable process name.
+        version:
+          type: integer
+          description: Version number, starting at 1 for the first deploy.
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when this version was deployed.
+        runningCount:
+          type: integer
+          description: Instances of this version with status RUNNING.
+        totalCount:
+          type: integer
+          description: All instances of this version across statuses.
+    BpmnProcessVersionPaginatedResponse:
+      type: object
+      description: Page of process version entries.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnProcessVersion'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
   responses:
     BadRequest:
       description: Bad Request
@@ -1939,17 +3942,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-    Unauthorized:
-      description: Unauthorized
-      content:
-         application/json:
-           schema:
-             $ref: '#/components/schemas/Error'
     InternalError:
       description: Internal Server Error
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-
-
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
