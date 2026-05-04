@@ -965,7 +965,7 @@ class BpmnApi:
     ) -> None:
         """Delete a BPMN resource version
 
-        Permanently deletes a single resource version. Past instances of this version remain in history.
+        Permanently deletes a single resource version. Past instances of this version remain in history. Refused with 409 Conflict while any version of any process inside the resource still has running instances. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -1004,6 +1004,7 @@ class BpmnApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '204': None,
+            '409': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -1036,7 +1037,7 @@ class BpmnApi:
     ) -> ApiResponse[None]:
         """Delete a BPMN resource version
 
-        Permanently deletes a single resource version. Past instances of this version remain in history.
+        Permanently deletes a single resource version. Past instances of this version remain in history. Refused with 409 Conflict while any version of any process inside the resource still has running instances. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -1075,6 +1076,7 @@ class BpmnApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '204': None,
+            '409': None,
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -1107,7 +1109,7 @@ class BpmnApi:
     ) -> RESTResponseType:
         """Delete a BPMN resource version
 
-        Permanently deletes a single resource version. Past instances of this version remain in history.
+        Permanently deletes a single resource version. Past instances of this version remain in history. Refused with 409 Conflict while any version of any process inside the resource still has running instances. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -1146,6 +1148,7 @@ class BpmnApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '204': None,
+            '409': None,
         }
         response_data = self.api_client.call_api(
             *_param,

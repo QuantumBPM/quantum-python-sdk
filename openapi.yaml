@@ -1109,7 +1109,10 @@ paths:
     delete:
       summary: Delete a BPMN resource version
       operationId: DeleteBpmnResource
-      description: Permanently deletes a single resource version. Past instances of this version remain in history.
+      description: |
+        Permanently deletes a single resource version. Past instances of this
+        version remain in history. Refused with 409 Conflict while any version
+        of any process inside the resource still has running instances.
       tags:
         - bpmn
       parameters:
@@ -1128,6 +1131,8 @@ paths:
       responses:
         '204':
           description: No Content
+        '409':
+          description: Conflict — resource has running instances
   /projects/{projectID}/bpmn/resources/{resourceID}/deploy:
     post:
       summary: Deploy a BPMN resource
@@ -2805,6 +2810,9 @@ components:
           type: string
           format: date-time
           description: Timestamp when this version was uploaded.
+        versionCount:
+          type: integer
+          description: Total number of stored versions under this `definitionsID`. Populated by the latest-listing endpoint; absent on single-version reads.
     PaginationMetadata:
       type: object
       description: Pagination metadata accompanying paginated list responses.

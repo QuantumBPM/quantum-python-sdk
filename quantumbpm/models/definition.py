@@ -36,7 +36,8 @@ class Definition(BaseModel):
     version: StrictInt = Field(description="Auto-incremented version number, starting at 1 for the first upload of a `definitionsID`.")
     created_by: Optional[StrictStr] = Field(default=None, description="User who uploaded this version.", alias="createdBy")
     created_at: datetime = Field(description="Timestamp when this version was uploaded.", alias="createdAt")
-    __properties: ClassVar[List[str]] = ["id", "name", "definitionsID", "xml", "version", "createdBy", "createdAt"]
+    version_count: Optional[StrictInt] = Field(default=None, description="Total number of stored versions under this `definitionsID`. Populated by the latest-listing endpoint; absent on single-version reads.", alias="versionCount")
+    __properties: ClassVar[List[str]] = ["id", "name", "definitionsID", "xml", "version", "createdBy", "createdAt", "versionCount"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -95,7 +96,8 @@ class Definition(BaseModel):
             "xml": obj.get("xml"),
             "version": obj.get("version"),
             "createdBy": obj.get("createdBy"),
-            "createdAt": obj.get("createdAt")
+            "createdAt": obj.get("createdAt"),
+            "versionCount": obj.get("versionCount")
         })
         return _obj
 
