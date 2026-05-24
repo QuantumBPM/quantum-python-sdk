@@ -17,12 +17,12 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from quantumbpm.models.active_scope import ActiveScope
-from quantumbpm.models.bpmn_activity_state import BpmnActivityState
 from quantumbpm.models.bpmn_incident import BpmnIncident
+from quantumbpm.models.suspension_entry import SuspensionEntry
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -34,14 +34,17 @@ class BpmnInstanceState(BaseModel):
     resource_id: UUID = Field(description="ID of the BPMN resource (definition file) that produced this instance.", alias="resourceID")
     workflow_id: Optional[StrictStr] = Field(default=None, description="Execution identifier for this instance.", alias="workflowID")
     parent_workflow_id: Optional[StrictStr] = Field(default=None, description="Execution identifier of the parent instance that started this one via a CallActivity. Empty for top-level instances.", alias="parentWorkflowID")
+    process_id: Optional[StrictStr] = Field(default=None, description="BPMN process definition ID this instance was started from.", alias="processId")
+    process_version: Optional[StrictInt] = Field(default=None, description="Version of the BPMN process definition this instance is currently running. Updated by migration operations.", alias="processVersion")
     status: Optional[StrictStr] = Field(default=None, description="Current lifecycle status of the instance (e.g. RUNNING, COMPLETED, FAILED, TERMINATED).")
     variables: Optional[Dict[str, Any]] = Field(default=None, description="All variables currently in scope for the root process.")
-    history: Optional[List[BpmnActivityState]] = Field(default=None, description="Ordered list of activity execution records.")
     error: Optional[StrictBool] = Field(default=None, description="True when the instance has an unresolved incident.")
     incidents: Optional[List[BpmnIncident]] = Field(default=None, description="Active incidents that require resolution before the process can continue.")
     active_scopes: Optional[List[ActiveScope]] = Field(default=None, description="Scopes that currently hold at least one live token.", alias="activeScopes")
     failure_reason: Optional[StrictStr] = Field(default=None, description="Error message from the workflow when status is FAILED.", alias="failureReason")
-    __properties: ClassVar[List[str]] = ["resourceID", "workflowID", "parentWorkflowID", "status", "variables", "history", "error", "incidents", "activeScopes", "failureReason"]
+    instance_suspension: Optional[SuspensionEntry] = Field(default=None, alias="instanceSuspension")
+    definition_suspension: Optional[SuspensionEntry] = Field(default=None, alias="definitionSuspension")
+    __properties: ClassVar[List[str]] = ["resourceID", "workflowID", "parentWorkflowID", "processId", "processVersion", "status", "variables", "error", "incidents", "activeScopes", "failureReason", "instanceSuspension", "definitionSuspension"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -82,13 +85,6 @@ class BpmnInstanceState(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of each item in history (list)
-        _items = []
-        if self.history:
-            for _item_history in self.history:
-                if _item_history:
-                    _items.append(_item_history.to_dict())
-            _dict['history'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in incidents (list)
         _items = []
         if self.incidents:
@@ -103,6 +99,12 @@ class BpmnInstanceState(BaseModel):
                 if _item_active_scopes:
                     _items.append(_item_active_scopes.to_dict())
             _dict['activeScopes'] = _items
+        # override the default output from pydantic by calling `to_dict()` of instance_suspension
+        if self.instance_suspension:
+            _dict['instanceSuspension'] = self.instance_suspension.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of definition_suspension
+        if self.definition_suspension:
+            _dict['definitionSuspension'] = self.definition_suspension.to_dict()
         return _dict
 
     @classmethod
@@ -118,13 +120,16 @@ class BpmnInstanceState(BaseModel):
             "resourceID": obj.get("resourceID"),
             "workflowID": obj.get("workflowID"),
             "parentWorkflowID": obj.get("parentWorkflowID"),
+            "processId": obj.get("processId"),
+            "processVersion": obj.get("processVersion"),
             "status": obj.get("status"),
             "variables": obj.get("variables"),
-            "history": [BpmnActivityState.from_dict(_item) for _item in obj["history"]] if obj.get("history") is not None else None,
             "error": obj.get("error"),
             "incidents": [BpmnIncident.from_dict(_item) for _item in obj["incidents"]] if obj.get("incidents") is not None else None,
             "activeScopes": [ActiveScope.from_dict(_item) for _item in obj["activeScopes"]] if obj.get("activeScopes") is not None else None,
-            "failureReason": obj.get("failureReason")
+            "failureReason": obj.get("failureReason"),
+            "instanceSuspension": SuspensionEntry.from_dict(obj["instanceSuspension"]) if obj.get("instanceSuspension") is not None else None,
+            "definitionSuspension": SuspensionEntry.from_dict(obj["definitionSuspension"]) if obj.get("definitionSuspension") is not None else None
         })
         return _obj
 

@@ -26,6 +26,7 @@ requires-poetry = ">=2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">= 7.2.1"
+pytest-asyncio = ">= 0.23"
 pytest-cov = ">= 2.8.1"
 mypy = ">= 1.5"
 
@@ -47,3 +48,6 @@ check_untyped_defs = true
 disallow_subclassing_any = true
 disallow_untyped_decorators = true
 disallow_any_generics = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

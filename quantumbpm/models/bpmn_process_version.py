@@ -19,7 +19,7 @@ import json
 
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from typing import Optional, Set
 from typing_extensions import Self
@@ -38,7 +38,10 @@ class BpmnProcessVersion(BaseModel):
     created_at: datetime = Field(description="Timestamp when this version was deployed.", alias="createdAt")
     running_count: StrictInt = Field(description="Instances of this version with status RUNNING.", alias="runningCount")
     total_count: StrictInt = Field(description="All instances of this version across statuses.", alias="totalCount")
-    __properties: ClassVar[List[str]] = ["id", "resourceID", "resourceName", "processID", "processName", "version", "createdAt", "runningCount", "totalCount"]
+    suspended_at: Optional[datetime] = Field(default=None, description="Timestamp at which this definition was paused. While set, the start endpoint rejects new instances of this definition with 409, and every already-running instance was sent a definition-scope suspend signal. Empty when active. ", alias="suspendedAt")
+    suspended_by: Optional[StrictStr] = Field(default=None, description="Operator who suspended this definition. Empty when active.", alias="suspendedBy")
+    suspend_reason: Optional[StrictStr] = Field(default=None, description="Free-text reason captured at suspend time.", alias="suspendReason")
+    __properties: ClassVar[List[str]] = ["id", "resourceID", "resourceName", "processID", "processName", "version", "createdAt", "runningCount", "totalCount", "suspendedAt", "suspendedBy", "suspendReason"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -99,7 +102,10 @@ class BpmnProcessVersion(BaseModel):
             "version": obj.get("version"),
             "createdAt": obj.get("createdAt"),
             "runningCount": obj.get("runningCount"),
-            "totalCount": obj.get("totalCount")
+            "totalCount": obj.get("totalCount"),
+            "suspendedAt": obj.get("suspendedAt"),
+            "suspendedBy": obj.get("suspendedBy"),
+            "suspendReason": obj.get("suspendReason")
         })
         return _obj
 

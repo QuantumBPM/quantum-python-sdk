@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -179,6 +180,9 @@ class BpmnClient:
         *,
         definition_id: str | UUID | None = None,
         status: str | None = None,
+        has_incident: bool | None = None,
+        suspended: bool | None = None,
+        created_after: datetime | None = None,
         page: int | None = None,
         page_size: int | None = None,
     ) -> BpmnInstancePaginatedResponse:
@@ -188,6 +192,9 @@ class BpmnClient:
             self._project_id,
             did,
             status,
+            has_incident,
+            suspended,
+            created_after,
             page,
             page_size,
         )

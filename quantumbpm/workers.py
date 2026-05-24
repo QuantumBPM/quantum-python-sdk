@@ -39,6 +39,7 @@ log = logging.getLogger("quantumbpm.workers")
 DEFAULT_MAX_JOBS = 1
 DEFAULT_POLL_TIMEOUT = "30s"
 DEFAULT_LOCK_DURATION = "30s"
+DEFAULT_MAX_ERROR_MESSAGE_BYTES = 2048
 POLL_ERROR_BACKOFF_S = 2.0
 
 TVars = TypeVar("TVars")
@@ -97,11 +98,15 @@ class Worker:
         project_id: str | UUID,
         *,
         client_id: str | None = None,
+        max_error_message_bytes: int = DEFAULT_MAX_ERROR_MESSAGE_BYTES,
     ) -> None:
         self._default = DefaultApi(api_client)
         self._bpmn = BpmnApi(api_client)
         self._project_id = UUID(project_id) if isinstance(project_id, str) else project_id
         self._client_id = client_id or f"worker-{socket.gethostname()}-{os.getpid()}"
+        self._max_error_message_bytes = (
+            max_error_message_bytes if max_error_message_bytes > 0 else DEFAULT_MAX_ERROR_MESSAGE_BYTES
+        )
         self._registrations: dict[str, _Registration] = {}
 
     @property
@@ -269,10 +274,11 @@ class Worker:
             heartbeat_stop.set()
             await hb_task
             log.exception("handler %s", r.task_type)
+            message = self._clamp_worker_error_message(r.task_type, str(exc))
             await self._throw_error(
                 raw,
                 "WORKER_ERROR",
-                Vars().set("error", str(exc)),
+                Vars().set("error", message),
             )
 
     async def _heartbeat(
@@ -327,6 +333,29 @@ class Worker:
             )
         except Exception as exc:
             log.error("throw_error %s: %s", raw.execution_key, exc)
+
+    def _clamp_worker_error_message(self, task_type: str, msg: str) -> str:
+        """
+        Shorten an unhandled handler exception's message to the configured
+        byte budget. UTF-8 safe (cuts on code-point boundary). Logs a WARN
+        and appends a truncation marker when it triggers.
+        """
+        limit = self._max_error_message_bytes
+        encoded = msg.encode("utf-8")
+        if limit <= 0 or len(encoded) <= limit:
+            return msg
+        marker = f"…[truncated, original {len(encoded)} bytes]"
+        marker_bytes = len(marker.encode("utf-8"))
+        budget = max(0, limit - marker_bytes)
+        # `decode(errors="ignore")` drops any half-codepoint at the boundary.
+        prefix = encoded[:budget].decode("utf-8", errors="ignore")
+        log.warning(
+            "workers: WORKER_ERROR message truncated for task=%s from %d to %d bytes",
+            task_type,
+            len(encoded),
+            limit,
+        )
+        return prefix + marker
 
 
 def _extract_typed_model(fn: Handler[Any]) -> Any | None:

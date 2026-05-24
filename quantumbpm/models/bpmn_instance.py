@@ -18,7 +18,7 @@ import re  # noqa: F401
 import json
 
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, Field, StrictStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List, Optional
 from uuid import UUID
 from typing import Optional, Set
@@ -36,7 +36,11 @@ class BpmnInstance(BaseModel):
     started_by: Optional[StrictStr] = Field(default=None, description="User or service account that initiated the instance.", alias="startedBy")
     created_at: datetime = Field(description="Timestamp when the instance was started.", alias="createdAt")
     completed_at: Optional[datetime] = Field(default=None, description="Timestamp when the instance reached a terminal status. Empty while running.", alias="completedAt")
-    __properties: ClassVar[List[str]] = ["definitionID", "workflowID", "parentWorkflowID", "status", "startedBy", "createdAt", "completedAt"]
+    has_incident: Optional[StrictBool] = Field(default=None, description="True when at least one unresolved incident is currently attached to this instance. Computed at query time against the open-incidents index — useful for rendering a \"needs attention\" indicator in instance lists without paying for a per-row state fetch from the engine.", alias="hasIncident")
+    suspended_at: Optional[datetime] = Field(default=None, description="Timestamp at which this instance was paused at INSTANCE scope. Empty when not instance-suspended. The instance may still be effectively suspended via its definition — call `GetBpmnInstance` to read both scopes if you need the full picture. ", alias="suspendedAt")
+    suspended_by: Optional[StrictStr] = Field(default=None, description="Operator who suspended this instance (instance scope). Empty when not instance-suspended.", alias="suspendedBy")
+    suspend_reason: Optional[StrictStr] = Field(default=None, description="Free-text reason captured at suspend time.", alias="suspendReason")
+    __properties: ClassVar[List[str]] = ["definitionID", "workflowID", "parentWorkflowID", "status", "startedBy", "createdAt", "completedAt", "hasIncident", "suspendedAt", "suspendedBy", "suspendReason"]
 
     @field_validator('status')
     def status_validate_enum(cls, value):
@@ -102,7 +106,11 @@ class BpmnInstance(BaseModel):
             "status": obj.get("status"),
             "startedBy": obj.get("startedBy"),
             "createdAt": obj.get("createdAt"),
-            "completedAt": obj.get("completedAt")
+            "completedAt": obj.get("completedAt"),
+            "hasIncident": obj.get("hasIncident"),
+            "suspendedAt": obj.get("suspendedAt"),
+            "suspendedBy": obj.get("suspendedBy"),
+            "suspendReason": obj.get("suspendReason")
         })
         return _obj
 

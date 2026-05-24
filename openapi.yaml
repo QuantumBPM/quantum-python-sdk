@@ -1350,6 +1350,38 @@ paths:
               - COMPLETED
               - FAILED
               - CANCELED
+        - name: hasIncident
+          in: query
+          required: false
+          description: |
+            Filter by whether the instance has at least one unresolved incident.
+            Omit to return all instances regardless of incident status; pass
+            `true` to show only instances that need operator attention; pass
+            `false` to exclude blocked instances.
+          schema:
+            type: boolean
+        - name: suspended
+          in: query
+          required: false
+          description: |
+            Filter by instance-scope suspension. `true` → only instances with
+            `suspendedAt` set; `false` → only running-and-not-paused. Omit for
+            no filter. Does not consider definition-scope suspension; for a
+            full "is this instance making progress?" view, callers should
+            additionally join against the parent definition.
+          schema:
+            type: boolean
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: |
+            Only return instances created at or after this timestamp. Strongly
+            recommended for monitoring views — terminal-state instance rows
+            accumulate indefinitely, and unfiltered queries grow linearly with
+            that history.
         - name: page
           in: query
           required: false
@@ -1398,6 +1430,12 @@ paths:
                   workflowID:
                     type: string
                     description: Stable execution identifier of the new instance.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /projects/{projectID}/bpmn/instances/{workflowID}:
     get:
       summary: Get BPMN instance state
@@ -1586,6 +1624,100 @@ paths:
       responses:
         '200':
           description: OK
+  /projects/{projectID}/bpmn/incidents:
+    get:
+      summary: List BPMN incidents
+      operationId: ListBpmnIncidents
+      description: |
+        Cross-instance audit listing of incidents in the project. By default
+        returns open incidents first (unresolved), ordered by recency.
+        Filterable by definition, error type, status, and time window.
+
+        Each row carries the parent process metadata (processID, processName)
+        so a single page render needs no follow-up queries against the
+        instances endpoint. Click-through to a specific instance still uses
+        the workflow-scoped detail endpoint.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionID
+          in: query
+          required: false
+          description: Restrict to incidents on instances of a single process definition.
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: query
+          required: false
+          description: Restrict to incidents on a single instance — useful for an instance-detail "all incidents ever raised here" view that includes resolved rows.
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: |
+            Filter by lifecycle status. `open` returns unresolved incidents;
+            `resolved` returns only resolved ones. Omit to return both.
+          schema:
+            type: string
+            enum:
+              - open
+              - resolved
+        - name: errorType
+          in: query
+          required: false
+          description: Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).
+          schema:
+            type: string
+            enum:
+              - BpmnError
+              - EscalationError
+              - CompensationError
+              - FeelError
+              - NoHandler
+              - GatewayNoMatch
+              - TimerResolution
+              - LinkNotFound
+              - MigrationError
+              - Unknown
+        - name: since
+          in: query
+          required: false
+          description: Earliest `raisedAt` to include (inclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: until
+          in: query
+          required: false
+          description: Latest `raisedAt` to include (exclusive).
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BpmnIncidentRecordPaginatedResponse'
   /projects/{projectID}/bpmn/instances/{workflowID}/migrate:
     post:
       summary: Migrate a running instance to a newer process version
@@ -1767,6 +1899,148 @@ paths:
       responses:
         '200':
           description: OK
+  /projects/{projectID}/bpmn/instances/{workflowID}/suspend:
+    post:
+      summary: Suspend a BPMN instance
+      operationId: SuspendBpmnInstance
+      description: |
+        Pauses forward token dispatch on a single running instance. The
+        instance's lifecycle status stays RUNNING; an orthogonal `suspendedAt`
+        flag layers on top. Idempotent — a second call against an already-
+        suspended instance is a no-op.
+
+        While suspended: cancel / terminate / migrate / force-rotate / resolve-
+        incident / variable update / modify all still work. Parked tokens
+        released by signal demuxes or timer fires queue internally and dispatch
+        on resume.
+
+        The audit (operator, reason, timestamp) is also recorded in the
+        workflow's Temporal history as a `SuspendInstanceEvent` so the timeline
+        view on the instance detail page can render the cycle.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspendBpmnInstanceRequest'
+      responses:
+        '204':
+          description: No Content
+  /projects/{projectID}/bpmn/instances/{workflowID}/resume:
+    post:
+      summary: Resume a suspended BPMN instance
+      operationId: ResumeBpmnInstance
+      description: |
+        Clears the instance-scope suspension. If the parent definition is also
+        suspended the instance remains effectively paused until the definition
+        is resumed as well. Idempotent.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: workflowID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No Content
+  /projects/{projectID}/bpmn/definitions/{definitionID}/suspend:
+    post:
+      summary: Suspend every running instance of a BPMN definition
+      operationId: SuspendBpmnDefinition
+      description: |
+        Pauses every running instance of one deployed process definition AND
+        rejects new instance starts on that definition until it is resumed.
+
+        The handler acquires a row-level lock on the definition before flipping
+        the flag so a `StartBpmnInstance` racing the suspend can't slip through.
+        It then iterates over every running instance (`status='RUNNING'`) and
+        sends each one a definition-scope suspend signal via the engine API.
+        Instances that were also explicitly instance-suspended stay paused
+        after a definition-scope resume — the operator must clear that scope
+        too.
+
+        Idempotent. The reason cascades to every affected instance's history
+        audit (`SuspendDefinitionEvent`) so the UI can render where the pause
+        came from.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionID
+          in: path
+          required: true
+          description: Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes).
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SuspendBpmnDefinitionRequest'
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Definition not found
+  /projects/{projectID}/bpmn/definitions/{definitionID}/resume:
+    post:
+      summary: Resume a suspended BPMN definition
+      operationId: ResumeBpmnDefinition
+      description: |
+        Clears the definition-scope suspension and fans out a resume signal to
+        every running instance of the definition. Instances that were also
+        instance-suspended stay paused until their own scope is cleared. New
+        instance starts are accepted again once the definition flag clears.
+        Idempotent.
+      tags:
+        - bpmn
+      parameters:
+        - name: projectID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: definitionID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+        '404':
+          description: Definition not found
   /projects/{projectID}/bpmn/external-jobs:
     get:
       summary: List external jobs
@@ -3242,6 +3516,23 @@ components:
           type: string
           format: date-time
           description: Timestamp when the instance reached a terminal status. Empty while running.
+        hasIncident:
+          type: boolean
+          description: True when at least one unresolved incident is currently attached to this instance. Computed at query time against the open-incidents index — useful for rendering a "needs attention" indicator in instance lists without paying for a per-row state fetch from the engine.
+        suspendedAt:
+          type: string
+          format: date-time
+          description: |
+            Timestamp at which this instance was paused at INSTANCE scope. Empty
+            when not instance-suspended. The instance may still be effectively
+            suspended via its definition — call `GetBpmnInstance` to read both
+            scopes if you need the full picture.
+        suspendedBy:
+          type: string
+          description: Operator who suspended this instance (instance scope). Empty when not instance-suspended.
+        suspendReason:
+          type: string
+          description: Free-text reason captured at suspend time.
     BpmnInstancePaginatedResponse:
       type: object
       description: Page of BPMN process instances.
@@ -3269,46 +3560,6 @@ components:
           type: object
           description: Initial process variables. Available to FEEL expressions and service tasks from the first activity onward.
           additionalProperties: true
-    BpmnActivityState:
-      type: object
-      description: Execution record for a single BPMN activity (service task, user task, gateway, etc.).
-      properties:
-        nodeID:
-          type: string
-          description: ID of the BPMN flow node.
-        nodeType:
-          type: string
-          description: Type of the BPMN node (e.g. ServiceTask, UserTask, ExclusiveGateway).
-        status:
-          type: string
-          description: Execution outcome — Started, Completed, Failed, or Canceled.
-          enum:
-            - Started
-            - Completed
-            - Failed
-            - Canceled
-        startTime:
-          type: integer
-          format: int64
-          description: Unix epoch nanoseconds when execution began.
-        endTime:
-          type: integer
-          format: int64
-          description: Unix epoch nanoseconds when execution ended; 0 if still running.
-        inputs:
-          type: object
-          description: Input variables evaluated at activity entry.
-          additionalProperties: true
-        outputs:
-          type: object
-          description: Output variables produced by the activity.
-          additionalProperties: true
-        executionKey:
-          type: string
-          description: Unique key identifying this execution (used to correlate external jobs).
-        childWorkflowID:
-          type: string
-          description: For CallActivity nodes, the execution identifier of the child instance spawned by this execution. Empty for non-CallActivity nodes and for the brief window between activity start and child instance startup.
     BpmnIncident:
       type: object
       description: An error that halted execution of a BPMN node and requires manual resolution.
@@ -3389,6 +3640,27 @@ components:
           type: object
           description: Variables scoped to this instance, excluding inherited parent-scope variables.
           additionalProperties: true
+    SuspensionEntry:
+      type: object
+      description: |
+        Audit-shaped record of an active suspension at one scope (instance or
+        definition). Returned inline on `BpmnInstanceState` — `null` when not
+        suspended at that scope. An instance is "effectively suspended" if either
+        scope's entry is present; the dispatcher pauses forward token dispatch
+        while either flag is set.
+      required:
+        - suspendedAt
+      properties:
+        suspendedAt:
+          type: integer
+          format: int64
+          description: Unix epoch nanoseconds at which the suspension was applied.
+        suspendedBy:
+          type: string
+          description: Identifier of the operator (or service account) that initiated the suspension.
+        reason:
+          type: string
+          description: Free-text reason captured at suspend time; surfaces in the operator UI alongside the action.
     BpmnInstanceState:
       type: object
       description: Full runtime state of a BPMN process instance.
@@ -3405,6 +3677,12 @@ components:
         parentWorkflowID:
           type: string
           description: Execution identifier of the parent instance that started this one via a CallActivity. Empty for top-level instances.
+        processId:
+          type: string
+          description: BPMN process definition ID this instance was started from.
+        processVersion:
+          type: integer
+          description: Version of the BPMN process definition this instance is currently running. Updated by migration operations.
         status:
           type: string
           description: Current lifecycle status of the instance (e.g. RUNNING, COMPLETED, FAILED, TERMINATED).
@@ -3412,11 +3690,6 @@ components:
           type: object
           description: All variables currently in scope for the root process.
           additionalProperties: true
-        history:
-          type: array
-          description: Ordered list of activity execution records.
-          items:
-            $ref: '#/components/schemas/BpmnActivityState'
         error:
           type: boolean
           description: True when the instance has an unresolved incident.
@@ -3433,6 +3706,19 @@ components:
         failureReason:
           type: string
           description: Error message from the workflow when status is FAILED.
+        instanceSuspension:
+          $ref: '#/components/schemas/SuspensionEntry'
+          description: |
+            Present when this instance has been explicitly suspended by an
+            operator. Persisted across CaN rotations. Clear via the resume
+            instance endpoint. Composes with `definitionSuspension` — both must
+            be null for the instance to dispatch tokens.
+        definitionSuspension:
+          $ref: '#/components/schemas/SuspensionEntry'
+          description: |
+            Present when the instance's process definition has been suspended.
+            Clear via the resume definition endpoint (the backend fans out to
+            every running instance of the definition).
     BpmnInstanceChildrenResponse:
       type: object
       description: Child instances spawned by a parent instance via CallActivity elements.
@@ -3443,6 +3729,97 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BpmnInstance'
+    BpmnIncidentRecord:
+      type: object
+      description: |
+        A persisted incident — the cross-instance audit row that backs the
+        "Incidents" view. The same incident is also available in
+        `BpmnInstanceState.incidents` while it is still open in the engine; the
+        persisted row additionally carries `raisedAt` / `resolvedAt` /
+        `resolvedBy` and the parent process metadata so it can be listed and
+        filtered without joining back to the instance.
+      required:
+        - id
+        - incidentID
+        - workflowID
+        - nodeID
+        - errorType
+        - errorMessage
+        - raisedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Surrogate row identifier; stable across resolves.
+        incidentID:
+          type: string
+          description: Engine-assigned incident identifier, unique within the workflow.
+        workflowID:
+          type: string
+          description: Identifier of the instance that produced the incident.
+        definitionID:
+          type: string
+          format: uuid
+          description: ID of the process definition the instance is running. May be absent when the source definition was deleted.
+        processID:
+          type: string
+          description: BPMN process ID of the parent definition. Convenience field; absent when definitionID is unresolved.
+        processName:
+          type: string
+          description: Human-readable name of the parent process definition.
+        nodeID:
+          type: string
+          description: ID of the BPMN node where the error occurred.
+        scopeID:
+          type: string
+          description: ID of the scope in which the error occurred.
+        executionKey:
+          type: string
+          description: Execution key of the activity that failed.
+        errorType:
+          type: string
+          description: Category of the error — same enum as `BpmnIncident.errorType`.
+          enum:
+            - BpmnError
+            - EscalationError
+            - CompensationError
+            - FeelError
+            - NoHandler
+            - GatewayNoMatch
+            - TimerResolution
+            - LinkNotFound
+            - MigrationError
+            - Unknown
+        errorCode:
+          type: string
+          description: BPMN error code from the process definition; empty for non-BPMN errors.
+        errorMessage:
+          type: string
+          description: Human-readable description of the error.
+        raisedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the engine recorded the incident.
+        resolvedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the incident was resolved. Empty while open.
+        resolvedBy:
+          type: string
+          description: Identifier of the user who resolved the incident, or "system:reconcile" when corrected by drift reconciliation. Empty for engine-internal resolves (boundary catches, modification cancel) and for open incidents.
+    BpmnIncidentRecordPaginatedResponse:
+      type: object
+      description: Page of persisted incidents.
+      required:
+        - data
+        - pagination
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BpmnIncidentRecord'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
     ElementMapping:
       type: object
       description: Maps a BPMN flow node from the source process version to the corresponding node in the target version during migration.
@@ -3522,6 +3899,19 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ModificationInstruction'
+    SuspendBpmnInstanceRequest:
+      type: object
+      description: Optional metadata captured with an instance-scope suspension.
+      properties:
+        reason:
+          type: string
+          description: Free-text rationale. Surfaces in the operator UI and the workflow's history audit.
+    SuspendBpmnDefinitionRequest:
+      type: object
+      description: Optional metadata captured with a definition-scope suspension. The same reason cascades to each running instance.
+      properties:
+        reason:
+          type: string
     ExternalJob:
       type: object
       description: A unit of work emitted by a BPMN service task that an external worker is expected to handle.
@@ -3930,6 +4320,20 @@ components:
         totalCount:
           type: integer
           description: All instances of this version across statuses.
+        suspendedAt:
+          type: string
+          format: date-time
+          description: |
+            Timestamp at which this definition was paused. While set, the start
+            endpoint rejects new instances of this definition with 409, and every
+            already-running instance was sent a definition-scope suspend signal.
+            Empty when active.
+        suspendedBy:
+          type: string
+          description: Operator who suspended this definition. Empty when active.
+        suspendReason:
+          type: string
+          description: Free-text reason captured at suspend time.
     BpmnProcessVersionPaginatedResponse:
       type: object
       description: Page of process version entries.

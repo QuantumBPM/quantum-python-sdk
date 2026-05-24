@@ -20,6 +20,7 @@ from pydantic import Field, StrictInt, StrictStr, field_validator
 from typing import Optional
 from typing_extensions import Annotated
 from uuid import UUID
+from quantumbpm.models.bpmn_incident_record_paginated_response import BpmnIncidentRecordPaginatedResponse
 from quantumbpm.models.bpmn_instance_children_response import BpmnInstanceChildrenResponse
 from quantumbpm.models.bpmn_process_summary_paginated_response import BpmnProcessSummaryPaginatedResponse
 from quantumbpm.models.bpmn_process_version_paginated_response import BpmnProcessVersionPaginatedResponse
@@ -41,6 +42,8 @@ from quantumbpm.models.publish_bpmn_message_request import PublishBpmnMessageReq
 from quantumbpm.models.publish_bpmn_signal_request import PublishBpmnSignalRequest
 from quantumbpm.models.start_bpmn_test_instance201_response import StartBpmnTestInstance201Response
 from quantumbpm.models.start_bpmn_test_instance_request import StartBpmnTestInstanceRequest
+from quantumbpm.models.suspend_bpmn_definition_request import SuspendBpmnDefinitionRequest
+from quantumbpm.models.suspend_bpmn_instance_request import SuspendBpmnInstanceRequest
 from quantumbpm.models.throw_bpmn_external_job_error_request import ThrowBpmnExternalJobErrorRequest
 from quantumbpm.models.throw_bpmn_external_job_errors_batch_request import ThrowBpmnExternalJobErrorsBatchRequest
 from quantumbpm.models.trigger_bpmn_ad_hoc_node_request import TriggerBpmnAdHocNodeRequest
@@ -3137,6 +3140,420 @@ class BpmnApi:
         return self.api_client.param_serialize(
             method='GET',
             resource_path='/projects/{projectID}/bpmn/user-tasks/{executionKey}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def list_bpmn_incidents(
+        self,
+        project_id: UUID,
+        definition_id: Annotated[Optional[UUID], Field(description="Restrict to incidents on instances of a single process definition.")] = None,
+        workflow_id: Annotated[Optional[StrictStr], Field(description="Restrict to incidents on a single instance — useful for an instance-detail \"all incidents ever raised here\" view that includes resolved rows.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status. `open` returns unresolved incidents; `resolved` returns only resolved ones. Omit to return both. ")] = None,
+        error_type: Annotated[Optional[StrictStr], Field(description="Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).")] = None,
+        since: Annotated[Optional[datetime], Field(description="Earliest `raisedAt` to include (inclusive).")] = None,
+        until: Annotated[Optional[datetime], Field(description="Latest `raisedAt` to include (exclusive).")] = None,
+        page: Optional[StrictInt] = None,
+        page_size: Optional[StrictInt] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> BpmnIncidentRecordPaginatedResponse:
+        """List BPMN incidents
+
+        Cross-instance audit listing of incidents in the project. By default returns open incidents first (unresolved), ordered by recency. Filterable by definition, error type, status, and time window.  Each row carries the parent process metadata (processID, processName) so a single page render needs no follow-up queries against the instances endpoint. Click-through to a specific instance still uses the workflow-scoped detail endpoint. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: Restrict to incidents on instances of a single process definition.
+        :type definition_id: UUID
+        :param workflow_id: Restrict to incidents on a single instance — useful for an instance-detail \"all incidents ever raised here\" view that includes resolved rows.
+        :type workflow_id: str
+        :param status: Filter by lifecycle status. `open` returns unresolved incidents; `resolved` returns only resolved ones. Omit to return both. 
+        :type status: str
+        :param error_type: Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).
+        :type error_type: str
+        :param since: Earliest `raisedAt` to include (inclusive).
+        :type since: datetime
+        :param until: Latest `raisedAt` to include (exclusive).
+        :type until: datetime
+        :param page:
+        :type page: int
+        :param page_size:
+        :type page_size: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_bpmn_incidents_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            workflow_id=workflow_id,
+            status=status,
+            error_type=error_type,
+            since=since,
+            until=until,
+            page=page,
+            page_size=page_size,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "BpmnIncidentRecordPaginatedResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def list_bpmn_incidents_with_http_info(
+        self,
+        project_id: UUID,
+        definition_id: Annotated[Optional[UUID], Field(description="Restrict to incidents on instances of a single process definition.")] = None,
+        workflow_id: Annotated[Optional[StrictStr], Field(description="Restrict to incidents on a single instance — useful for an instance-detail \"all incidents ever raised here\" view that includes resolved rows.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status. `open` returns unresolved incidents; `resolved` returns only resolved ones. Omit to return both. ")] = None,
+        error_type: Annotated[Optional[StrictStr], Field(description="Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).")] = None,
+        since: Annotated[Optional[datetime], Field(description="Earliest `raisedAt` to include (inclusive).")] = None,
+        until: Annotated[Optional[datetime], Field(description="Latest `raisedAt` to include (exclusive).")] = None,
+        page: Optional[StrictInt] = None,
+        page_size: Optional[StrictInt] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[BpmnIncidentRecordPaginatedResponse]:
+        """List BPMN incidents
+
+        Cross-instance audit listing of incidents in the project. By default returns open incidents first (unresolved), ordered by recency. Filterable by definition, error type, status, and time window.  Each row carries the parent process metadata (processID, processName) so a single page render needs no follow-up queries against the instances endpoint. Click-through to a specific instance still uses the workflow-scoped detail endpoint. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: Restrict to incidents on instances of a single process definition.
+        :type definition_id: UUID
+        :param workflow_id: Restrict to incidents on a single instance — useful for an instance-detail \"all incidents ever raised here\" view that includes resolved rows.
+        :type workflow_id: str
+        :param status: Filter by lifecycle status. `open` returns unresolved incidents; `resolved` returns only resolved ones. Omit to return both. 
+        :type status: str
+        :param error_type: Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).
+        :type error_type: str
+        :param since: Earliest `raisedAt` to include (inclusive).
+        :type since: datetime
+        :param until: Latest `raisedAt` to include (exclusive).
+        :type until: datetime
+        :param page:
+        :type page: int
+        :param page_size:
+        :type page_size: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_bpmn_incidents_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            workflow_id=workflow_id,
+            status=status,
+            error_type=error_type,
+            since=since,
+            until=until,
+            page=page,
+            page_size=page_size,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "BpmnIncidentRecordPaginatedResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def list_bpmn_incidents_without_preload_content(
+        self,
+        project_id: UUID,
+        definition_id: Annotated[Optional[UUID], Field(description="Restrict to incidents on instances of a single process definition.")] = None,
+        workflow_id: Annotated[Optional[StrictStr], Field(description="Restrict to incidents on a single instance — useful for an instance-detail \"all incidents ever raised here\" view that includes resolved rows.")] = None,
+        status: Annotated[Optional[StrictStr], Field(description="Filter by lifecycle status. `open` returns unresolved incidents; `resolved` returns only resolved ones. Omit to return both. ")] = None,
+        error_type: Annotated[Optional[StrictStr], Field(description="Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).")] = None,
+        since: Annotated[Optional[datetime], Field(description="Earliest `raisedAt` to include (inclusive).")] = None,
+        until: Annotated[Optional[datetime], Field(description="Latest `raisedAt` to include (exclusive).")] = None,
+        page: Optional[StrictInt] = None,
+        page_size: Optional[StrictInt] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """List BPMN incidents
+
+        Cross-instance audit listing of incidents in the project. By default returns open incidents first (unresolved), ordered by recency. Filterable by definition, error type, status, and time window.  Each row carries the parent process metadata (processID, processName) so a single page render needs no follow-up queries against the instances endpoint. Click-through to a specific instance still uses the workflow-scoped detail endpoint. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: Restrict to incidents on instances of a single process definition.
+        :type definition_id: UUID
+        :param workflow_id: Restrict to incidents on a single instance — useful for an instance-detail \"all incidents ever raised here\" view that includes resolved rows.
+        :type workflow_id: str
+        :param status: Filter by lifecycle status. `open` returns unresolved incidents; `resolved` returns only resolved ones. Omit to return both. 
+        :type status: str
+        :param error_type: Restrict to a single error category (matches `BpmnIncidentRecord.errorType`).
+        :type error_type: str
+        :param since: Earliest `raisedAt` to include (inclusive).
+        :type since: datetime
+        :param until: Latest `raisedAt` to include (exclusive).
+        :type until: datetime
+        :param page:
+        :type page: int
+        :param page_size:
+        :type page_size: int
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._list_bpmn_incidents_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            workflow_id=workflow_id,
+            status=status,
+            error_type=error_type,
+            since=since,
+            until=until,
+            page=page,
+            page_size=page_size,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "BpmnIncidentRecordPaginatedResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _list_bpmn_incidents_serialize(
+        self,
+        project_id,
+        definition_id,
+        workflow_id,
+        status,
+        error_type,
+        since,
+        until,
+        page,
+        page_size,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectID'] = project_id
+        # process the query parameters
+        if definition_id is not None:
+            
+            _query_params.append(('definitionID', definition_id))
+            
+        if workflow_id is not None:
+            
+            _query_params.append(('workflowID', workflow_id))
+            
+        if status is not None:
+            
+            _query_params.append(('status', status))
+            
+        if error_type is not None:
+            
+            _query_params.append(('errorType', error_type))
+            
+        if since is not None:
+            if isinstance(since, datetime):
+                _query_params.append(
+                    (
+                        'since',
+                        since.strftime(
+                            self.api_client.configuration.datetime_format
+                        )
+                    )
+                )
+            else:
+                _query_params.append(('since', since))
+            
+        if until is not None:
+            if isinstance(until, datetime):
+                _query_params.append(
+                    (
+                        'until',
+                        until.strftime(
+                            self.api_client.configuration.datetime_format
+                        )
+                    )
+                )
+            else:
+                _query_params.append(('until', until))
+            
+        if page is not None:
+            
+            _query_params.append(('page', page))
+            
+        if page_size is not None:
+            
+            _query_params.append(('pageSize', page_size))
+            
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/projects/{projectID}/bpmn/incidents',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
@@ -6884,6 +7301,545 @@ class BpmnApi:
 
 
     @validate_call
+    def resume_bpmn_definition(
+        self,
+        project_id: UUID,
+        definition_id: UUID,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> None:
+        """Resume a suspended BPMN definition
+
+        Clears the definition-scope suspension and fans out a resume signal to every running instance of the definition. Instances that were also instance-suspended stay paused until their own scope is cleared. New instance starts are accepted again once the definition flag clears. Idempotent. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: (required)
+        :type definition_id: UUID
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resume_bpmn_definition_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+            '404': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def resume_bpmn_definition_with_http_info(
+        self,
+        project_id: UUID,
+        definition_id: UUID,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[None]:
+        """Resume a suspended BPMN definition
+
+        Clears the definition-scope suspension and fans out a resume signal to every running instance of the definition. Instances that were also instance-suspended stay paused until their own scope is cleared. New instance starts are accepted again once the definition flag clears. Idempotent. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: (required)
+        :type definition_id: UUID
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resume_bpmn_definition_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+            '404': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def resume_bpmn_definition_without_preload_content(
+        self,
+        project_id: UUID,
+        definition_id: UUID,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Resume a suspended BPMN definition
+
+        Clears the definition-scope suspension and fans out a resume signal to every running instance of the definition. Instances that were also instance-suspended stay paused until their own scope is cleared. New instance starts are accepted again once the definition flag clears. Idempotent. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: (required)
+        :type definition_id: UUID
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resume_bpmn_definition_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+            '404': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _resume_bpmn_definition_serialize(
+        self,
+        project_id,
+        definition_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectID'] = project_id
+        if definition_id is not None:
+            _path_params['definitionID'] = definition_id
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+
+
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/projects/{projectID}/bpmn/definitions/{definitionID}/resume',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def resume_bpmn_instance(
+        self,
+        project_id: UUID,
+        workflow_id: StrictStr,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> None:
+        """Resume a suspended BPMN instance
+
+        Clears the instance-scope suspension. If the parent definition is also suspended the instance remains effectively paused until the definition is resumed as well. Idempotent. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param workflow_id: (required)
+        :type workflow_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resume_bpmn_instance_serialize(
+            project_id=project_id,
+            workflow_id=workflow_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def resume_bpmn_instance_with_http_info(
+        self,
+        project_id: UUID,
+        workflow_id: StrictStr,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[None]:
+        """Resume a suspended BPMN instance
+
+        Clears the instance-scope suspension. If the parent definition is also suspended the instance remains effectively paused until the definition is resumed as well. Idempotent. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param workflow_id: (required)
+        :type workflow_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resume_bpmn_instance_serialize(
+            project_id=project_id,
+            workflow_id=workflow_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def resume_bpmn_instance_without_preload_content(
+        self,
+        project_id: UUID,
+        workflow_id: StrictStr,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Resume a suspended BPMN instance
+
+        Clears the instance-scope suspension. If the parent definition is also suspended the instance remains effectively paused until the definition is resumed as well. Idempotent. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param workflow_id: (required)
+        :type workflow_id: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._resume_bpmn_instance_serialize(
+            project_id=project_id,
+            workflow_id=workflow_id,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _resume_bpmn_instance_serialize(
+        self,
+        project_id,
+        workflow_id,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectID'] = project_id
+        if workflow_id is not None:
+            _path_params['workflowID'] = workflow_id
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+
+
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/projects/{projectID}/bpmn/instances/{workflowID}/resume',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def set_bpmn_ad_hoc_variables(
         self,
         project_id: UUID,
@@ -7491,6 +8447,601 @@ class BpmnApi:
         return self.api_client.param_serialize(
             method='POST',
             resource_path='/projects/{projectID}/bpmn/resources/{resourceID}/test',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def suspend_bpmn_definition(
+        self,
+        project_id: UUID,
+        definition_id: Annotated[UUID, Field(description="Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes).")],
+        suspend_bpmn_definition_request: Optional[SuspendBpmnDefinitionRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> None:
+        """Suspend every running instance of a BPMN definition
+
+        Pauses every running instance of one deployed process definition AND rejects new instance starts on that definition until it is resumed.  The handler acquires a row-level lock on the definition before flipping the flag so a `StartBpmnInstance` racing the suspend can't slip through. It then iterates over every running instance (`status='RUNNING'`) and sends each one a definition-scope suspend signal via the engine API. Instances that were also explicitly instance-suspended stay paused after a definition-scope resume — the operator must clear that scope too.  Idempotent. The reason cascades to every affected instance's history audit (`SuspendDefinitionEvent`) so the UI can render where the pause came from. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes). (required)
+        :type definition_id: UUID
+        :param suspend_bpmn_definition_request:
+        :type suspend_bpmn_definition_request: SuspendBpmnDefinitionRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._suspend_bpmn_definition_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            suspend_bpmn_definition_request=suspend_bpmn_definition_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+            '404': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def suspend_bpmn_definition_with_http_info(
+        self,
+        project_id: UUID,
+        definition_id: Annotated[UUID, Field(description="Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes).")],
+        suspend_bpmn_definition_request: Optional[SuspendBpmnDefinitionRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[None]:
+        """Suspend every running instance of a BPMN definition
+
+        Pauses every running instance of one deployed process definition AND rejects new instance starts on that definition until it is resumed.  The handler acquires a row-level lock on the definition before flipping the flag so a `StartBpmnInstance` racing the suspend can't slip through. It then iterates over every running instance (`status='RUNNING'`) and sends each one a definition-scope suspend signal via the engine API. Instances that were also explicitly instance-suspended stay paused after a definition-scope resume — the operator must clear that scope too.  Idempotent. The reason cascades to every affected instance's history audit (`SuspendDefinitionEvent`) so the UI can render where the pause came from. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes). (required)
+        :type definition_id: UUID
+        :param suspend_bpmn_definition_request:
+        :type suspend_bpmn_definition_request: SuspendBpmnDefinitionRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._suspend_bpmn_definition_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            suspend_bpmn_definition_request=suspend_bpmn_definition_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+            '404': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def suspend_bpmn_definition_without_preload_content(
+        self,
+        project_id: UUID,
+        definition_id: Annotated[UUID, Field(description="Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes).")],
+        suspend_bpmn_definition_request: Optional[SuspendBpmnDefinitionRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Suspend every running instance of a BPMN definition
+
+        Pauses every running instance of one deployed process definition AND rejects new instance starts on that definition until it is resumed.  The handler acquires a row-level lock on the definition before flipping the flag so a `StartBpmnInstance` racing the suspend can't slip through. It then iterates over every running instance (`status='RUNNING'`) and sends each one a definition-scope suspend signal via the engine API. Instances that were also explicitly instance-suspended stay paused after a definition-scope resume — the operator must clear that scope too.  Idempotent. The reason cascades to every affected instance's history audit (`SuspendDefinitionEvent`) so the UI can render where the pause came from. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param definition_id: Platform identifier of the process definition version (same UUID `BpmnProcessVersion.id` exposes). (required)
+        :type definition_id: UUID
+        :param suspend_bpmn_definition_request:
+        :type suspend_bpmn_definition_request: SuspendBpmnDefinitionRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._suspend_bpmn_definition_serialize(
+            project_id=project_id,
+            definition_id=definition_id,
+            suspend_bpmn_definition_request=suspend_bpmn_definition_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+            '404': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _suspend_bpmn_definition_serialize(
+        self,
+        project_id,
+        definition_id,
+        suspend_bpmn_definition_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectID'] = project_id
+        if definition_id is not None:
+            _path_params['definitionID'] = definition_id
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+        if suspend_bpmn_definition_request is not None:
+            _body_params = suspend_bpmn_definition_request
+
+
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/projects/{projectID}/bpmn/definitions/{definitionID}/suspend',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def suspend_bpmn_instance(
+        self,
+        project_id: UUID,
+        workflow_id: StrictStr,
+        suspend_bpmn_instance_request: Optional[SuspendBpmnInstanceRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> None:
+        """Suspend a BPMN instance
+
+        Pauses forward token dispatch on a single running instance. The instance's lifecycle status stays RUNNING; an orthogonal `suspendedAt` flag layers on top. Idempotent — a second call against an already- suspended instance is a no-op.  While suspended: cancel / terminate / migrate / force-rotate / resolve- incident / variable update / modify all still work. Parked tokens released by signal demuxes or timer fires queue internally and dispatch on resume.  The audit (operator, reason, timestamp) is also recorded in the workflow's Temporal history as a `SuspendInstanceEvent` so the timeline view on the instance detail page can render the cycle. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param workflow_id: (required)
+        :type workflow_id: str
+        :param suspend_bpmn_instance_request:
+        :type suspend_bpmn_instance_request: SuspendBpmnInstanceRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._suspend_bpmn_instance_serialize(
+            project_id=project_id,
+            workflow_id=workflow_id,
+            suspend_bpmn_instance_request=suspend_bpmn_instance_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def suspend_bpmn_instance_with_http_info(
+        self,
+        project_id: UUID,
+        workflow_id: StrictStr,
+        suspend_bpmn_instance_request: Optional[SuspendBpmnInstanceRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[None]:
+        """Suspend a BPMN instance
+
+        Pauses forward token dispatch on a single running instance. The instance's lifecycle status stays RUNNING; an orthogonal `suspendedAt` flag layers on top. Idempotent — a second call against an already- suspended instance is a no-op.  While suspended: cancel / terminate / migrate / force-rotate / resolve- incident / variable update / modify all still work. Parked tokens released by signal demuxes or timer fires queue internally and dispatch on resume.  The audit (operator, reason, timestamp) is also recorded in the workflow's Temporal history as a `SuspendInstanceEvent` so the timeline view on the instance detail page can render the cycle. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param workflow_id: (required)
+        :type workflow_id: str
+        :param suspend_bpmn_instance_request:
+        :type suspend_bpmn_instance_request: SuspendBpmnInstanceRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._suspend_bpmn_instance_serialize(
+            project_id=project_id,
+            workflow_id=workflow_id,
+            suspend_bpmn_instance_request=suspend_bpmn_instance_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def suspend_bpmn_instance_without_preload_content(
+        self,
+        project_id: UUID,
+        workflow_id: StrictStr,
+        suspend_bpmn_instance_request: Optional[SuspendBpmnInstanceRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Suspend a BPMN instance
+
+        Pauses forward token dispatch on a single running instance. The instance's lifecycle status stays RUNNING; an orthogonal `suspendedAt` flag layers on top. Idempotent — a second call against an already- suspended instance is a no-op.  While suspended: cancel / terminate / migrate / force-rotate / resolve- incident / variable update / modify all still work. Parked tokens released by signal demuxes or timer fires queue internally and dispatch on resume.  The audit (operator, reason, timestamp) is also recorded in the workflow's Temporal history as a `SuspendInstanceEvent` so the timeline view on the instance detail page can render the cycle. 
+
+        :param project_id: (required)
+        :type project_id: UUID
+        :param workflow_id: (required)
+        :type workflow_id: str
+        :param suspend_bpmn_instance_request:
+        :type suspend_bpmn_instance_request: SuspendBpmnInstanceRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._suspend_bpmn_instance_serialize(
+            project_id=project_id,
+            workflow_id=workflow_id,
+            suspend_bpmn_instance_request=suspend_bpmn_instance_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '204': None,
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _suspend_bpmn_instance_serialize(
+        self,
+        project_id,
+        workflow_id,
+        suspend_bpmn_instance_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectID'] = project_id
+        if workflow_id is not None:
+            _path_params['workflowID'] = workflow_id
+        # process the query parameters
+        # process the header parameters
+        # process the form parameters
+        # process the body parameter
+        if suspend_bpmn_instance_request is not None:
+            _body_params = suspend_bpmn_instance_request
+
+
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/projects/{projectID}/bpmn/instances/{workflowID}/suspend',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

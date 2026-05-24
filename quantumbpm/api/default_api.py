@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 
 from datetime import datetime
-from pydantic import Field, StrictInt, StrictStr, field_validator
+from pydantic import Field, StrictBool, StrictInt, StrictStr, field_validator
 from typing import Dict, List, Optional
 from typing_extensions import Annotated
 from uuid import UUID
@@ -5529,6 +5529,9 @@ class DefaultApi:
         project_id: UUID,
         definition_id: Optional[UUID] = None,
         status: Optional[StrictStr] = None,
+        has_incident: Annotated[Optional[StrictBool], Field(description="Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. ")] = None,
+        suspended: Annotated[Optional[StrictBool], Field(description="Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. ")] = None,
+        created_after: Annotated[Optional[datetime], Field(description="Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5554,6 +5557,12 @@ class DefaultApi:
         :type definition_id: UUID
         :param status:
         :type status: str
+        :param has_incident: Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. 
+        :type has_incident: bool
+        :param suspended: Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. 
+        :type suspended: bool
+        :param created_after: Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. 
+        :type created_after: datetime
         :param page:
         :type page: int
         :param page_size:
@@ -5584,6 +5593,9 @@ class DefaultApi:
             project_id=project_id,
             definition_id=definition_id,
             status=status,
+            has_incident=has_incident,
+            suspended=suspended,
+            created_after=created_after,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5612,6 +5624,9 @@ class DefaultApi:
         project_id: UUID,
         definition_id: Optional[UUID] = None,
         status: Optional[StrictStr] = None,
+        has_incident: Annotated[Optional[StrictBool], Field(description="Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. ")] = None,
+        suspended: Annotated[Optional[StrictBool], Field(description="Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. ")] = None,
+        created_after: Annotated[Optional[datetime], Field(description="Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5637,6 +5652,12 @@ class DefaultApi:
         :type definition_id: UUID
         :param status:
         :type status: str
+        :param has_incident: Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. 
+        :type has_incident: bool
+        :param suspended: Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. 
+        :type suspended: bool
+        :param created_after: Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. 
+        :type created_after: datetime
         :param page:
         :type page: int
         :param page_size:
@@ -5667,6 +5688,9 @@ class DefaultApi:
             project_id=project_id,
             definition_id=definition_id,
             status=status,
+            has_incident=has_incident,
+            suspended=suspended,
+            created_after=created_after,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5695,6 +5719,9 @@ class DefaultApi:
         project_id: UUID,
         definition_id: Optional[UUID] = None,
         status: Optional[StrictStr] = None,
+        has_incident: Annotated[Optional[StrictBool], Field(description="Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. ")] = None,
+        suspended: Annotated[Optional[StrictBool], Field(description="Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. ")] = None,
+        created_after: Annotated[Optional[datetime], Field(description="Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5720,6 +5747,12 @@ class DefaultApi:
         :type definition_id: UUID
         :param status:
         :type status: str
+        :param has_incident: Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. 
+        :type has_incident: bool
+        :param suspended: Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. 
+        :type suspended: bool
+        :param created_after: Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. 
+        :type created_after: datetime
         :param page:
         :type page: int
         :param page_size:
@@ -5750,6 +5783,9 @@ class DefaultApi:
             project_id=project_id,
             definition_id=definition_id,
             status=status,
+            has_incident=has_incident,
+            suspended=suspended,
+            created_after=created_after,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5773,6 +5809,9 @@ class DefaultApi:
         project_id,
         definition_id,
         status,
+        has_incident,
+        suspended,
+        created_after,
         page,
         page_size,
         _request_auth,
@@ -5806,6 +5845,27 @@ class DefaultApi:
         if status is not None:
             
             _query_params.append(('status', status))
+            
+        if has_incident is not None:
+            
+            _query_params.append(('hasIncident', has_incident))
+            
+        if suspended is not None:
+            
+            _query_params.append(('suspended', suspended))
+            
+        if created_after is not None:
+            if isinstance(created_after, datetime):
+                _query_params.append(
+                    (
+                        'createdAfter',
+                        created_after.strftime(
+                            self.api_client.configuration.datetime_format
+                        )
+                    )
+                )
+            else:
+                _query_params.append(('createdAfter', created_after))
             
         if page is not None:
             
@@ -8368,6 +8428,9 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': "StartBpmnInstance201Response",
+            '400': "Error",
+            '401': "Error",
+            '500': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -8439,6 +8502,9 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': "StartBpmnInstance201Response",
+            '400': "Error",
+            '401': "Error",
+            '500': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
@@ -8510,6 +8576,9 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '201': "StartBpmnInstance201Response",
+            '400': "Error",
+            '401': "Error",
+            '500': "Error",
         }
         response_data = self.api_client.call_api(
             *_param,
