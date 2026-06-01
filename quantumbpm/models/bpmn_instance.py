@@ -40,7 +40,8 @@ class BpmnInstance(BaseModel):
     suspended_at: Optional[datetime] = Field(default=None, description="Timestamp at which this instance was paused at INSTANCE scope. Empty when not instance-suspended. The instance may still be effectively suspended via its definition — call `GetBpmnInstance` to read both scopes if you need the full picture. ", alias="suspendedAt")
     suspended_by: Optional[StrictStr] = Field(default=None, description="Operator who suspended this instance (instance scope). Empty when not instance-suspended.", alias="suspendedBy")
     suspend_reason: Optional[StrictStr] = Field(default=None, description="Free-text reason captured at suspend time.", alias="suspendReason")
-    __properties: ClassVar[List[str]] = ["definitionID", "workflowID", "parentWorkflowID", "status", "startedBy", "createdAt", "completedAt", "hasIncident", "suspendedAt", "suspendedBy", "suspendReason"]
+    business_id: Optional[StrictStr] = Field(default=None, description="Caller-supplied correlation key set when the instance was started. Inherited unchanged on child instances spawned via CallActivity.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["definitionID", "workflowID", "parentWorkflowID", "status", "startedBy", "createdAt", "completedAt", "hasIncident", "suspendedAt", "suspendedBy", "suspendReason", "businessId"]
 
     @field_validator('status')
     def status_validate_enum(cls, value):
@@ -110,7 +111,8 @@ class BpmnInstance(BaseModel):
             "hasIncident": obj.get("hasIncident"),
             "suspendedAt": obj.get("suspendedAt"),
             "suspendedBy": obj.get("suspendedBy"),
-            "suspendReason": obj.get("suspendReason")
+            "suspendReason": obj.get("suspendReason"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 

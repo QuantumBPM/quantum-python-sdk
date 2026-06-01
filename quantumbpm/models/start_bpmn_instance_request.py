@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from uuid import UUID
 from typing import Optional, Set
 from typing_extensions import Self
@@ -30,7 +31,8 @@ class StartBpmnInstanceRequest(BaseModel):
     """ # noqa: E501
     process_definition_id: UUID = Field(description="ID of a deployed `BpmnProcessDefinition` to start.", alias="processDefinitionID")
     variables: Optional[Dict[str, Any]] = Field(default=None, description="Initial process variables. Available to FEEL expressions and service tasks from the first activity onward.")
-    __properties: ClassVar[List[str]] = ["processDefinitionID", "variables"]
+    business_id: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, description="Optional caller-supplied correlation key (order number, ticket ID, etc.) indexed for filtering and stamped on every child instance, external job, user task, and DMN execution emitted by this process.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["processDefinitionID", "variables", "businessId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -84,7 +86,8 @@ class StartBpmnInstanceRequest(BaseModel):
 
         _obj = cls.model_validate({
             "processDefinitionID": obj.get("processDefinitionID"),
-            "variables": obj.get("variables")
+            "variables": obj.get("variables"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 

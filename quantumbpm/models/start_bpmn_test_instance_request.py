@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,7 +30,8 @@ class StartBpmnTestInstanceRequest(BaseModel):
     """ # noqa: E501
     process_id: Optional[StrictStr] = Field(default=None, description="BPMN process ID (the `id` attribute on `<bpmn:process>`) to start. Defaults to the first executable process in the resource.", alias="processID")
     variables: Optional[Dict[str, Any]] = Field(default=None, description="Initial process variables.")
-    __properties: ClassVar[List[str]] = ["processID", "variables"]
+    business_id: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, description="Optional caller-supplied correlation key.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["processID", "variables", "businessId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,7 +85,8 @@ class StartBpmnTestInstanceRequest(BaseModel):
 
         _obj = cls.model_validate({
             "processID": obj.get("processID"),
-            "variables": obj.get("variables")
+            "variables": obj.get("variables"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 

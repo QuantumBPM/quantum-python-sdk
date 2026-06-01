@@ -70,6 +70,10 @@ class Job(Generic[TVars]):
     typed: TVars
     headers: dict[str, str]
     raw: ExternalJob
+    business_id: str | None = None
+    """Correlation key inherited from the originating BPMN process. ``None``
+    when the instance was started without one. Use it for log correlation
+    or downstream tracing."""
 
 
 Handler = Callable[[Job[TVars]], Awaitable[Vars | None]]
@@ -259,6 +263,7 @@ class Worker:
             typed=typed,
             headers=raw.headers or {},
             raw=raw,
+            business_id=raw.business_id,
         )
 
         try:

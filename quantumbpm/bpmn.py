@@ -104,9 +104,14 @@ class BpmnClient:
         vars: Vars,
         *,
         process_id: str | None = None,
+        business_id: str | None = None,
     ) -> str:
         rid = UUID(resource_id) if isinstance(resource_id, str) else resource_id
-        body = StartBpmnTestInstanceRequest(processID=process_id, variables=vars.to_wire_map())
+        body = StartBpmnTestInstanceRequest(
+            processID=process_id,
+            variables=vars.to_wire_map(),
+            businessId=business_id,
+        )
         resp = await self._run(self._bpmn.start_bpmn_test_instance, self._project_id, rid, body)
         if not resp or not resp.workflow_id:
             raise RuntimeError("bpmn: start_test_instance returned no workflowID")
@@ -157,13 +162,19 @@ class BpmnClient:
         self,
         process_definition_id: str | UUID,
         vars: Vars,
+        *,
+        business_id: str | None = None,
     ) -> str:
         pid = (
             UUID(process_definition_id)
             if isinstance(process_definition_id, str)
             else process_definition_id
         )
-        body = StartBpmnInstanceRequest(processDefinitionID=pid, variables=vars.to_wire_map())
+        body = StartBpmnInstanceRequest(
+            processDefinitionID=pid,
+            variables=vars.to_wire_map(),
+            businessId=business_id,
+        )
         resp = await self._run(self._default.start_bpmn_instance, self._project_id, body)
         if not resp or not resp.workflow_id:
             raise RuntimeError("bpmn: start_instance returned no workflowID")
@@ -183,6 +194,7 @@ class BpmnClient:
         has_incident: bool | None = None,
         suspended: bool | None = None,
         created_after: datetime | None = None,
+        business_id: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
     ) -> BpmnInstancePaginatedResponse:
@@ -195,6 +207,7 @@ class BpmnClient:
             has_incident,
             suspended,
             created_after,
+            business_id,
             page,
             page_size,
         )
@@ -282,6 +295,7 @@ class BpmnClient:
         assignee: str | None = None,
         candidate_user: str | None = None,
         candidate_group: str | None = None,
+        business_id: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
     ) -> BpmnUserTaskPaginatedResponse:
@@ -293,6 +307,7 @@ class BpmnClient:
             assignee,
             candidate_user,
             candidate_group,
+            business_id,
             page,
             page_size,
         )

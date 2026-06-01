@@ -44,7 +44,8 @@ class BpmnInstanceState(BaseModel):
     failure_reason: Optional[StrictStr] = Field(default=None, description="Error message from the workflow when status is FAILED.", alias="failureReason")
     instance_suspension: Optional[SuspensionEntry] = Field(default=None, alias="instanceSuspension")
     definition_suspension: Optional[SuspensionEntry] = Field(default=None, alias="definitionSuspension")
-    __properties: ClassVar[List[str]] = ["resourceID", "workflowID", "parentWorkflowID", "processId", "processVersion", "status", "variables", "error", "incidents", "activeScopes", "failureReason", "instanceSuspension", "definitionSuspension"]
+    business_id: Optional[StrictStr] = Field(default=None, description="Caller-supplied correlation key set when the instance was started.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["resourceID", "workflowID", "parentWorkflowID", "processId", "processVersion", "status", "variables", "error", "incidents", "activeScopes", "failureReason", "instanceSuspension", "definitionSuspension", "businessId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -129,7 +130,8 @@ class BpmnInstanceState(BaseModel):
             "activeScopes": [ActiveScope.from_dict(_item) for _item in obj["activeScopes"]] if obj.get("activeScopes") is not None else None,
             "failureReason": obj.get("failureReason"),
             "instanceSuspension": SuspensionEntry.from_dict(obj["instanceSuspension"]) if obj.get("instanceSuspension") is not None else None,
-            "definitionSuspension": SuspensionEntry.from_dict(obj["definitionSuspension"]) if obj.get("definitionSuspension") is not None else None
+            "definitionSuspension": SuspensionEntry.from_dict(obj["definitionSuspension"]) if obj.get("definitionSuspension") is not None else None,
+            "businessId": obj.get("businessId")
         })
         return _obj
 

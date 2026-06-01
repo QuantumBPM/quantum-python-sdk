@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -31,7 +32,8 @@ class EvaluateStoredRequest(BaseModel):
     context: Dict[str, Optional[object]] = Field(description="FEEL context (a name → value map). The DMN equivalent of an object.")
     decision_services: Optional[List[StrictStr]] = Field(default=None, description="Names of decision services to evaluate. If empty, no decision services are evaluated.", alias="decisionServices")
     decisions: Optional[List[StrictStr]] = Field(default=None, description="Names of decisions or decision services to evaluate. If empty, all decisions are evaluated.")
-    __properties: ClassVar[List[str]] = ["version", "context", "decisionServices", "decisions"]
+    business_id: Optional[Annotated[str, Field(strict=True, max_length=255)]] = Field(default=None, description="Optional caller-supplied correlation key persisted with the resulting execution row for cross-system tracing.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["version", "context", "decisionServices", "decisions", "businessId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -87,7 +89,8 @@ class EvaluateStoredRequest(BaseModel):
             "version": obj.get("version"),
             "context": obj.get("context"),
             "decisionServices": obj.get("decisionServices"),
-            "decisions": obj.get("decisions")
+            "decisions": obj.get("decisions"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 

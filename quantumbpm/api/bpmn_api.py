@@ -4871,6 +4871,7 @@ class BpmnApi:
         assignee: Optional[StrictStr] = None,
         candidate_user: Optional[StrictStr] = None,
         candidate_group: Optional[StrictStr] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -4902,6 +4903,8 @@ class BpmnApi:
         :type candidate_user: str
         :param candidate_group:
         :type candidate_group: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page:
         :type page: int
         :param page_size:
@@ -4935,6 +4938,7 @@ class BpmnApi:
             assignee=assignee,
             candidate_user=candidate_user,
             candidate_group=candidate_group,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -4966,6 +4970,7 @@ class BpmnApi:
         assignee: Optional[StrictStr] = None,
         candidate_user: Optional[StrictStr] = None,
         candidate_group: Optional[StrictStr] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -4997,6 +5002,8 @@ class BpmnApi:
         :type candidate_user: str
         :param candidate_group:
         :type candidate_group: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page:
         :type page: int
         :param page_size:
@@ -5030,6 +5037,7 @@ class BpmnApi:
             assignee=assignee,
             candidate_user=candidate_user,
             candidate_group=candidate_group,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5061,6 +5069,7 @@ class BpmnApi:
         assignee: Optional[StrictStr] = None,
         candidate_user: Optional[StrictStr] = None,
         candidate_group: Optional[StrictStr] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5092,6 +5101,8 @@ class BpmnApi:
         :type candidate_user: str
         :param candidate_group:
         :type candidate_group: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page:
         :type page: int
         :param page_size:
@@ -5125,6 +5136,7 @@ class BpmnApi:
             assignee=assignee,
             candidate_user=candidate_user,
             candidate_group=candidate_group,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5151,6 +5163,7 @@ class BpmnApi:
         assignee,
         candidate_user,
         candidate_group,
+        business_id,
         page,
         page_size,
         _request_auth,
@@ -5196,6 +5209,10 @@ class BpmnApi:
         if candidate_group is not None:
             
             _query_params.append(('candidateGroup', candidate_group))
+            
+        if business_id is not None:
+            
+            _query_params.append(('businessId', business_id))
             
         if page is not None:
             

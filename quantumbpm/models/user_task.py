@@ -48,7 +48,8 @@ class UserTask(BaseModel):
     completion_variables: Optional[Dict[str, Any]] = Field(default=None, description="Variables submitted alongside the completion or error call. Set for COMPLETED and FAILED tasks.", alias="completionVariables")
     created_at: datetime = Field(description="Timestamp when the task was created.", alias="createdAt")
     completed_at: Optional[datetime] = Field(default=None, description="Timestamp when the task reached a terminal status.", alias="completedAt")
-    __properties: ClassVar[List[str]] = ["id", "executionKey", "workflowID", "parentWorkflowID", "nodeID", "taskType", "assignee", "candidateUsers", "candidateGroups", "formKey", "formID", "variables", "headers", "status", "cancelReason", "errorCode", "completionVariables", "createdAt", "completedAt"]
+    business_id: Optional[StrictStr] = Field(default=None, description="Caller-supplied correlation key inherited from the parent BPMN process.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["id", "executionKey", "workflowID", "parentWorkflowID", "nodeID", "taskType", "assignee", "candidateUsers", "candidateGroups", "formKey", "formID", "variables", "headers", "status", "cancelReason", "errorCode", "completionVariables", "createdAt", "completedAt", "businessId"]
 
     @field_validator('status')
     def status_validate_enum(cls, value):
@@ -126,7 +127,8 @@ class UserTask(BaseModel):
             "errorCode": obj.get("errorCode"),
             "completionVariables": obj.get("completionVariables"),
             "createdAt": obj.get("createdAt"),
-            "completedAt": obj.get("completedAt")
+            "completedAt": obj.get("completedAt"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 

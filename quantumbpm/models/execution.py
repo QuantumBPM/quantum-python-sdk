@@ -36,7 +36,8 @@ class Execution(BaseModel):
     inputs: Dict[str, Optional[object]] = Field(description="FEEL context (a name → value map). The DMN equivalent of an object.")
     outputs: Optional[object]
     definitions_id: Optional[StrictStr] = Field(default=None, description="The DMN XML's `<definitions id=\"…\">` value, useful for grouping executions across versions.", alias="definitionsID")
-    __properties: ClassVar[List[str]] = ["id", "definitionID", "executedAt", "executedBy", "inputs", "outputs", "definitionsID"]
+    business_id: Optional[StrictStr] = Field(default=None, description="Caller-supplied correlation key passed at evaluation time (REST) or inherited from the parent BPMN process (business rule task).", alias="businessId")
+    __properties: ClassVar[List[str]] = ["id", "definitionID", "executedAt", "executedBy", "inputs", "outputs", "definitionsID", "businessId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -100,7 +101,8 @@ class Execution(BaseModel):
             "executedBy": obj.get("executedBy"),
             "inputs": obj.get("inputs"),
             "outputs": obj.get("outputs"),
-            "definitionsID": obj.get("definitionsID")
+            "definitionsID": obj.get("definitionsID"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 

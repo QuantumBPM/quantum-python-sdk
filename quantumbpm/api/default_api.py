@@ -5159,6 +5159,7 @@ class DefaultApi:
         task_type: Annotated[Optional[StrictStr], Field(description="Filter jobs by task type")] = None,
         status: Annotated[Optional[StrictStr], Field(description="Filter jobs by status")] = None,
         workflow_id: Annotated[Optional[StrictStr], Field(description="Filter jobs by workflow ID")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         created_after: Annotated[Optional[datetime], Field(description="Only return jobs created at or after this timestamp. Strongly recommended for monitoring views — completed-job records accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
@@ -5187,6 +5188,8 @@ class DefaultApi:
         :type status: str
         :param workflow_id: Filter jobs by workflow ID
         :type workflow_id: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param created_after: Only return jobs created at or after this timestamp. Strongly recommended for monitoring views — completed-job records accumulate indefinitely, and unfiltered queries grow linearly with that history. 
         :type created_after: datetime
         :param page:
@@ -5220,6 +5223,7 @@ class DefaultApi:
             task_type=task_type,
             status=status,
             workflow_id=workflow_id,
+            business_id=business_id,
             created_after=created_after,
             page=page,
             page_size=page_size,
@@ -5250,6 +5254,7 @@ class DefaultApi:
         task_type: Annotated[Optional[StrictStr], Field(description="Filter jobs by task type")] = None,
         status: Annotated[Optional[StrictStr], Field(description="Filter jobs by status")] = None,
         workflow_id: Annotated[Optional[StrictStr], Field(description="Filter jobs by workflow ID")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         created_after: Annotated[Optional[datetime], Field(description="Only return jobs created at or after this timestamp. Strongly recommended for monitoring views — completed-job records accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
@@ -5278,6 +5283,8 @@ class DefaultApi:
         :type status: str
         :param workflow_id: Filter jobs by workflow ID
         :type workflow_id: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param created_after: Only return jobs created at or after this timestamp. Strongly recommended for monitoring views — completed-job records accumulate indefinitely, and unfiltered queries grow linearly with that history. 
         :type created_after: datetime
         :param page:
@@ -5311,6 +5318,7 @@ class DefaultApi:
             task_type=task_type,
             status=status,
             workflow_id=workflow_id,
+            business_id=business_id,
             created_after=created_after,
             page=page,
             page_size=page_size,
@@ -5341,6 +5349,7 @@ class DefaultApi:
         task_type: Annotated[Optional[StrictStr], Field(description="Filter jobs by task type")] = None,
         status: Annotated[Optional[StrictStr], Field(description="Filter jobs by status")] = None,
         workflow_id: Annotated[Optional[StrictStr], Field(description="Filter jobs by workflow ID")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         created_after: Annotated[Optional[datetime], Field(description="Only return jobs created at or after this timestamp. Strongly recommended for monitoring views — completed-job records accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
@@ -5369,6 +5378,8 @@ class DefaultApi:
         :type status: str
         :param workflow_id: Filter jobs by workflow ID
         :type workflow_id: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param created_after: Only return jobs created at or after this timestamp. Strongly recommended for monitoring views — completed-job records accumulate indefinitely, and unfiltered queries grow linearly with that history. 
         :type created_after: datetime
         :param page:
@@ -5402,6 +5413,7 @@ class DefaultApi:
             task_type=task_type,
             status=status,
             workflow_id=workflow_id,
+            business_id=business_id,
             created_after=created_after,
             page=page,
             page_size=page_size,
@@ -5427,6 +5439,7 @@ class DefaultApi:
         task_type,
         status,
         workflow_id,
+        business_id,
         created_after,
         page,
         page_size,
@@ -5465,6 +5478,10 @@ class DefaultApi:
         if workflow_id is not None:
             
             _query_params.append(('workflowID', workflow_id))
+            
+        if business_id is not None:
+            
+            _query_params.append(('businessId', business_id))
             
         if created_after is not None:
             if isinstance(created_after, datetime):
@@ -5532,6 +5549,7 @@ class DefaultApi:
         has_incident: Annotated[Optional[StrictBool], Field(description="Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. ")] = None,
         suspended: Annotated[Optional[StrictBool], Field(description="Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. ")] = None,
         created_after: Annotated[Optional[datetime], Field(description="Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key set at start time.")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5563,6 +5581,8 @@ class DefaultApi:
         :type suspended: bool
         :param created_after: Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. 
         :type created_after: datetime
+        :param business_id: Exact-match filter on the caller-supplied correlation key set at start time.
+        :type business_id: str
         :param page:
         :type page: int
         :param page_size:
@@ -5596,6 +5616,7 @@ class DefaultApi:
             has_incident=has_incident,
             suspended=suspended,
             created_after=created_after,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5627,6 +5648,7 @@ class DefaultApi:
         has_incident: Annotated[Optional[StrictBool], Field(description="Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. ")] = None,
         suspended: Annotated[Optional[StrictBool], Field(description="Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. ")] = None,
         created_after: Annotated[Optional[datetime], Field(description="Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key set at start time.")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5658,6 +5680,8 @@ class DefaultApi:
         :type suspended: bool
         :param created_after: Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. 
         :type created_after: datetime
+        :param business_id: Exact-match filter on the caller-supplied correlation key set at start time.
+        :type business_id: str
         :param page:
         :type page: int
         :param page_size:
@@ -5691,6 +5715,7 @@ class DefaultApi:
             has_incident=has_incident,
             suspended=suspended,
             created_after=created_after,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5722,6 +5747,7 @@ class DefaultApi:
         has_incident: Annotated[Optional[StrictBool], Field(description="Filter by whether the instance has at least one unresolved incident. Omit to return all instances regardless of incident status; pass `true` to show only instances that need operator attention; pass `false` to exclude blocked instances. ")] = None,
         suspended: Annotated[Optional[StrictBool], Field(description="Filter by instance-scope suspension. `true` → only instances with `suspendedAt` set; `false` → only running-and-not-paused. Omit for no filter. Does not consider definition-scope suspension; for a full \"is this instance making progress?\" view, callers should additionally join against the parent definition. ")] = None,
         created_after: Annotated[Optional[datetime], Field(description="Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. ")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key set at start time.")] = None,
         page: Optional[StrictInt] = None,
         page_size: Optional[StrictInt] = None,
         _request_timeout: Union[
@@ -5753,6 +5779,8 @@ class DefaultApi:
         :type suspended: bool
         :param created_after: Only return instances created at or after this timestamp. Strongly recommended for monitoring views — terminal-state instance rows accumulate indefinitely, and unfiltered queries grow linearly with that history. 
         :type created_after: datetime
+        :param business_id: Exact-match filter on the caller-supplied correlation key set at start time.
+        :type business_id: str
         :param page:
         :type page: int
         :param page_size:
@@ -5786,6 +5814,7 @@ class DefaultApi:
             has_incident=has_incident,
             suspended=suspended,
             created_after=created_after,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -5812,6 +5841,7 @@ class DefaultApi:
         has_incident,
         suspended,
         created_after,
+        business_id,
         page,
         page_size,
         _request_auth,
@@ -5866,6 +5896,10 @@ class DefaultApi:
                 )
             else:
                 _query_params.append(('createdAfter', created_after))
+            
+        if business_id is not None:
+            
+            _query_params.append(('businessId', business_id))
             
         if page is not None:
             
@@ -6853,6 +6887,7 @@ class DefaultApi:
         definition_id: UUID,
         definitions_id: Annotated[Optional[StrictStr], Field(description="Filter by DMN `<definitions id>` (XML id).")] = None,
         start_date: Annotated[Optional[datetime], Field(description="Filter executions after this date (ISO 8601)")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Annotated[Optional[Annotated[int, Field(strict=True, ge=1)]], Field(description="Page number (1-indexed)")] = None,
         page_size: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Number of items per page (max 100)")] = None,
         _request_timeout: Union[
@@ -6880,6 +6915,8 @@ class DefaultApi:
         :type definitions_id: str
         :param start_date: Filter executions after this date (ISO 8601)
         :type start_date: datetime
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page: Page number (1-indexed)
         :type page: int
         :param page_size: Number of items per page (max 100)
@@ -6911,6 +6948,7 @@ class DefaultApi:
             definition_id=definition_id,
             definitions_id=definitions_id,
             start_date=start_date,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -6943,6 +6981,7 @@ class DefaultApi:
         definition_id: UUID,
         definitions_id: Annotated[Optional[StrictStr], Field(description="Filter by DMN `<definitions id>` (XML id).")] = None,
         start_date: Annotated[Optional[datetime], Field(description="Filter executions after this date (ISO 8601)")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Annotated[Optional[Annotated[int, Field(strict=True, ge=1)]], Field(description="Page number (1-indexed)")] = None,
         page_size: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Number of items per page (max 100)")] = None,
         _request_timeout: Union[
@@ -6970,6 +7009,8 @@ class DefaultApi:
         :type definitions_id: str
         :param start_date: Filter executions after this date (ISO 8601)
         :type start_date: datetime
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page: Page number (1-indexed)
         :type page: int
         :param page_size: Number of items per page (max 100)
@@ -7001,6 +7042,7 @@ class DefaultApi:
             definition_id=definition_id,
             definitions_id=definitions_id,
             start_date=start_date,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -7033,6 +7075,7 @@ class DefaultApi:
         definition_id: UUID,
         definitions_id: Annotated[Optional[StrictStr], Field(description="Filter by DMN `<definitions id>` (XML id).")] = None,
         start_date: Annotated[Optional[datetime], Field(description="Filter executions after this date (ISO 8601)")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Annotated[Optional[Annotated[int, Field(strict=True, ge=1)]], Field(description="Page number (1-indexed)")] = None,
         page_size: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Number of items per page (max 100)")] = None,
         _request_timeout: Union[
@@ -7060,6 +7103,8 @@ class DefaultApi:
         :type definitions_id: str
         :param start_date: Filter executions after this date (ISO 8601)
         :type start_date: datetime
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page: Page number (1-indexed)
         :type page: int
         :param page_size: Number of items per page (max 100)
@@ -7091,6 +7136,7 @@ class DefaultApi:
             definition_id=definition_id,
             definitions_id=definitions_id,
             start_date=start_date,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -7118,6 +7164,7 @@ class DefaultApi:
         definition_id,
         definitions_id,
         start_date,
+        business_id,
         page,
         page_size,
         _request_auth,
@@ -7162,6 +7209,10 @@ class DefaultApi:
                 )
             else:
                 _query_params.append(('startDate', start_date))
+            
+        if business_id is not None:
+            
+            _query_params.append(('businessId', business_id))
             
         if page is not None:
             
@@ -7515,6 +7566,7 @@ class DefaultApi:
         self,
         project_id: UUID,
         definitions_id: Annotated[Optional[StrictStr], Field(description="Filter by DMN `<definitions id>` (XML id).")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Annotated[Optional[Annotated[int, Field(strict=True, ge=1)]], Field(description="Page number (1-indexed)")] = None,
         page_size: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Number of items per page (max 100)")] = None,
         _request_timeout: Union[
@@ -7538,6 +7590,8 @@ class DefaultApi:
         :type project_id: UUID
         :param definitions_id: Filter by DMN `<definitions id>` (XML id).
         :type definitions_id: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page: Page number (1-indexed)
         :type page: int
         :param page_size: Number of items per page (max 100)
@@ -7567,6 +7621,7 @@ class DefaultApi:
         _param = self._list_project_executions_serialize(
             project_id=project_id,
             definitions_id=definitions_id,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -7597,6 +7652,7 @@ class DefaultApi:
         self,
         project_id: UUID,
         definitions_id: Annotated[Optional[StrictStr], Field(description="Filter by DMN `<definitions id>` (XML id).")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Annotated[Optional[Annotated[int, Field(strict=True, ge=1)]], Field(description="Page number (1-indexed)")] = None,
         page_size: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Number of items per page (max 100)")] = None,
         _request_timeout: Union[
@@ -7620,6 +7676,8 @@ class DefaultApi:
         :type project_id: UUID
         :param definitions_id: Filter by DMN `<definitions id>` (XML id).
         :type definitions_id: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page: Page number (1-indexed)
         :type page: int
         :param page_size: Number of items per page (max 100)
@@ -7649,6 +7707,7 @@ class DefaultApi:
         _param = self._list_project_executions_serialize(
             project_id=project_id,
             definitions_id=definitions_id,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -7679,6 +7738,7 @@ class DefaultApi:
         self,
         project_id: UUID,
         definitions_id: Annotated[Optional[StrictStr], Field(description="Filter by DMN `<definitions id>` (XML id).")] = None,
+        business_id: Annotated[Optional[Annotated[str, Field(strict=True, max_length=255)]], Field(description="Exact-match filter on the caller-supplied correlation key.")] = None,
         page: Annotated[Optional[Annotated[int, Field(strict=True, ge=1)]], Field(description="Page number (1-indexed)")] = None,
         page_size: Annotated[Optional[Annotated[int, Field(le=100, strict=True, ge=1)]], Field(description="Number of items per page (max 100)")] = None,
         _request_timeout: Union[
@@ -7702,6 +7762,8 @@ class DefaultApi:
         :type project_id: UUID
         :param definitions_id: Filter by DMN `<definitions id>` (XML id).
         :type definitions_id: str
+        :param business_id: Exact-match filter on the caller-supplied correlation key.
+        :type business_id: str
         :param page: Page number (1-indexed)
         :type page: int
         :param page_size: Number of items per page (max 100)
@@ -7731,6 +7793,7 @@ class DefaultApi:
         _param = self._list_project_executions_serialize(
             project_id=project_id,
             definitions_id=definitions_id,
+            business_id=business_id,
             page=page,
             page_size=page_size,
             _request_auth=_request_auth,
@@ -7756,6 +7819,7 @@ class DefaultApi:
         self,
         project_id,
         definitions_id,
+        business_id,
         page,
         page_size,
         _request_auth,
@@ -7785,6 +7849,10 @@ class DefaultApi:
         if definitions_id is not None:
             
             _query_params.append(('definitionsID', definitions_id))
+            
+        if business_id is not None:
+            
+            _query_params.append(('businessId', business_id))
             
         if page is not None:
             

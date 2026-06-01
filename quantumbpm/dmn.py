@@ -34,6 +34,7 @@ class DmnClient:
         version: int | None = None,
         decisions: Sequence[str] | None = None,
         decision_services: Sequence[str] | None = None,
+        business_id: str | None = None,
     ) -> DmnResult:
         """
         Run a stored DMN definition identified by its DMN XML
@@ -45,6 +46,7 @@ class DmnClient:
             version=version,
             decisions=list(decisions) if decisions is not None else None,
             decisionServices=list(decision_services) if decision_services is not None else None,
+            businessId=business_id,
         )
         return await asyncio.to_thread(
             self._api.evaluate_by_definitions_id,
@@ -62,6 +64,7 @@ class DmnClient:
         version: int | None = None,
         decisions: Sequence[str] | None = None,
         decision_services: Sequence[str] | None = None,
+        business_id: str | None = None,
     ) -> DmnResult:
         """
         Run a stored DMN definition addressed by its platform UUID. Prefer
@@ -72,6 +75,7 @@ class DmnClient:
             version=version,
             decisions=list(decisions) if decisions is not None else None,
             decisionServices=list(decision_services) if decision_services is not None else None,
+            businessId=business_id,
         )
         defid = UUID(definition_id) if isinstance(definition_id, str) else definition_id
         return await asyncio.to_thread(

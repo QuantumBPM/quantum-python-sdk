@@ -44,7 +44,8 @@ class ExternalJob(BaseModel):
     locked_by: Optional[StrictStr] = Field(default=None, description="Worker `clientID` that currently holds the exclusive lock on the job.", alias="lockedBy")
     lock_expires_at: Optional[datetime] = Field(default=None, description="Time at which the lock will be released if not extended via Heartbeat.", alias="lockExpiresAt")
     cancel_reason: Optional[StrictStr] = Field(default=None, description="Best-effort label describing why a CANCELED job was interrupted (e.g. instance cancelled, instance terminated).", alias="cancelReason")
-    __properties: ClassVar[List[str]] = ["id", "executionKey", "workflowID", "nodeID", "taskType", "variables", "parentWorkflowID", "status", "retries", "headers", "createdAt", "completedAt", "lockedBy", "lockExpiresAt", "cancelReason"]
+    business_id: Optional[StrictStr] = Field(default=None, description="Caller-supplied correlation key inherited from the parent BPMN process. Workers can use it for log correlation or downstream tracing.", alias="businessId")
+    __properties: ClassVar[List[str]] = ["id", "executionKey", "workflowID", "nodeID", "taskType", "variables", "parentWorkflowID", "status", "retries", "headers", "createdAt", "completedAt", "lockedBy", "lockExpiresAt", "cancelReason", "businessId"]
 
     @field_validator('status')
     def status_validate_enum(cls, value):
@@ -118,7 +119,8 @@ class ExternalJob(BaseModel):
             "completedAt": obj.get("completedAt"),
             "lockedBy": obj.get("lockedBy"),
             "lockExpiresAt": obj.get("lockExpiresAt"),
-            "cancelReason": obj.get("cancelReason")
+            "cancelReason": obj.get("cancelReason"),
+            "businessId": obj.get("businessId")
         })
         return _obj
 
