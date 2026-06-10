@@ -45,7 +45,8 @@ class ExternalJob(BaseModel):
     lock_expires_at: Optional[datetime] = Field(default=None, description="Time at which the lock will be released if not extended via Heartbeat.", alias="lockExpiresAt")
     cancel_reason: Optional[StrictStr] = Field(default=None, description="Best-effort label describing why a CANCELED job was interrupted (e.g. instance cancelled, instance terminated).", alias="cancelReason")
     business_id: Optional[StrictStr] = Field(default=None, description="Caller-supplied correlation key inherited from the parent BPMN process. Workers can use it for log correlation or downstream tracing.", alias="businessId")
-    __properties: ClassVar[List[str]] = ["id", "executionKey", "workflowID", "nodeID", "taskType", "variables", "parentWorkflowID", "status", "retries", "headers", "createdAt", "completedAt", "lockedBy", "lockExpiresAt", "cancelReason", "businessId"]
+    trace_context: Optional[Dict[str, StrictStr]] = Field(default=None, description="W3C trace-propagation carrier (e.g. `traceparent`/`tracestate`) captured from the originating process instance. Present only when distributed tracing is enabled on the server. SDK workers pass this map to their OpenTelemetry propagator's extract so the worker span joins the instance's trace; plain workers can ignore it.", alias="traceContext")
+    __properties: ClassVar[List[str]] = ["id", "executionKey", "workflowID", "nodeID", "taskType", "variables", "parentWorkflowID", "status", "retries", "headers", "createdAt", "completedAt", "lockedBy", "lockExpiresAt", "cancelReason", "businessId", "traceContext"]
 
     @field_validator('status')
     def status_validate_enum(cls, value):
@@ -120,7 +121,8 @@ class ExternalJob(BaseModel):
             "lockedBy": obj.get("lockedBy"),
             "lockExpiresAt": obj.get("lockExpiresAt"),
             "cancelReason": obj.get("cancelReason"),
-            "businessId": obj.get("businessId")
+            "businessId": obj.get("businessId"),
+            "traceContext": obj.get("traceContext")
         })
         return _obj
 

@@ -28,6 +28,7 @@ from quantumbpm.models.complete_bpmn_external_job_request import CompleteBpmnExt
 from quantumbpm.models.external_job import ExternalJob
 from quantumbpm.models.heartbeat_bpmn_external_job_request import HeartbeatBpmnExternalJobRequest
 from quantumbpm.models.poll_bpmn_job_request import PollBpmnJobRequest
+from quantumbpm.tracing import job_span, mark_bpmn_error, mark_worker_error
 from quantumbpm.models.throw_bpmn_external_job_error_request import (
     ThrowBpmnExternalJobErrorRequest,
 )
@@ -266,25 +267,28 @@ class Worker:
             business_id=raw.business_id,
         )
 
-        try:
-            result = await r.handler(job)
-            heartbeat_stop.set()
-            await hb_task
-            await self._complete(raw, result if isinstance(result, Vars) else Vars())
-        except BpmnError as be:
-            heartbeat_stop.set()
-            await hb_task
-            await self._throw_error(raw, be.code, be.variables or Vars())
-        except Exception as exc:
-            heartbeat_stop.set()
-            await hb_task
-            log.exception("handler %s", r.task_type)
-            message = self._clamp_worker_error_message(r.task_type, str(exc))
-            await self._throw_error(
-                raw,
-                "WORKER_ERROR",
-                Vars().set("error", message),
-            )
+        with job_span(raw) as span:
+            try:
+                result = await r.handler(job)
+                heartbeat_stop.set()
+                await hb_task
+                await self._complete(raw, result if isinstance(result, Vars) else Vars())
+            except BpmnError as be:
+                heartbeat_stop.set()
+                await hb_task
+                mark_bpmn_error(span, be.code)
+                await self._throw_error(raw, be.code, be.variables or Vars())
+            except Exception as exc:
+                heartbeat_stop.set()
+                await hb_task
+                log.exception("handler %s", r.task_type)
+                mark_worker_error(span, exc)
+                message = self._clamp_worker_error_message(r.task_type, str(exc))
+                await self._throw_error(
+                    raw,
+                    "WORKER_ERROR",
+                    Vars().set("error", message),
+                )
 
     async def _heartbeat(
         self, r: _Registration, raw: ExternalJob, stop: asyncio.Event

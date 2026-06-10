@@ -4040,6 +4040,11 @@ components:
         businessId:
           type: string
           description: Caller-supplied correlation key inherited from the parent BPMN process. Workers can use it for log correlation or downstream tracing.
+        traceContext:
+          type: object
+          additionalProperties:
+            type: string
+          description: W3C trace-propagation carrier (e.g. `traceparent`/`tracestate`) captured from the originating process instance. Present only when distributed tracing is enabled on the server. SDK workers pass this map to their OpenTelemetry propagator's extract so the worker span joins the instance's trace; plain workers can ignore it.
     BpmnExternalJobPaginatedResponse:
       type: object
       description: Page of external jobs.
