@@ -2165,30 +2165,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExternalJobQueueDepthResponse'
-  /projects/{projectID}/bpmn/external-jobs/workers:
-    get:
-      summary: Live count of long-poll workers grouped by taskType
-      description: |
-        Returns the count of workers currently long-polling for each `taskType`.
-        Reflects only currently-connected workers; long-polls that have timed out
-        or disconnected are not counted.
-      operationId: GetBpmnExternalJobsActiveWorkers
-      tags:
-        - bpmn
-      parameters:
-        - name: projectID
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExternalJobActiveWorkersResponse'
   /projects/{projectID}/bpmn/external-jobs/poll:
     post:
       summary: Poll for external jobs (long-poll)
@@ -4080,27 +4056,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ExternalJobQueueDepthItem'
-    ExternalJobActiveWorkersItem:
-      type: object
-      description: Active long-poll worker count for a single task type.
-      required:
-        - taskType
-        - activeWorkers
-      properties:
-        taskType:
-          type: string
-        activeWorkers:
-          type: integer
-    ExternalJobActiveWorkersResponse:
-      type: object
-      description: Per-task-type breakdown of currently-connected job workers.
-      required:
-        - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/ExternalJobActiveWorkersItem'
     PollBpmnJobRequest:
       type: object
       description: Long-poll request for external jobs.

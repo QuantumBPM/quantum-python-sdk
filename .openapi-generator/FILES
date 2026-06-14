@@ -45,8 +45,6 @@ docs/EvaluateStoredRequest.md
 docs/EvaluationResult.md
 docs/Execution.md
 docs/ExternalJob.md
-docs/ExternalJobActiveWorkersItem.md
-docs/ExternalJobActiveWorkersResponse.md
 docs/ExternalJobBatchResponse.md
 docs/ExternalJobBatchResponseResultsInner.md
 docs/ExternalJobQueueDepthItem.md
@@ -138,8 +136,6 @@ quantumbpm/models/evaluate_stored_request.py
 quantumbpm/models/evaluation_result.py
 quantumbpm/models/execution.py
 quantumbpm/models/external_job.py
-quantumbpm/models/external_job_active_workers_item.py
-quantumbpm/models/external_job_active_workers_response.py
 quantumbpm/models/external_job_batch_response.py
 quantumbpm/models/external_job_batch_response_results_inner.py
 quantumbpm/models/external_job_queue_depth_item.py
@@ -229,8 +225,6 @@ test/test_evaluate_stored_request.py
 test/test_evaluation_result.py
 test/test_execution.py
 test/test_external_job.py
-test/test_external_job_active_workers_item.py
-test/test_external_job_active_workers_response.py
 test/test_external_job_batch_response.py
 test/test_external_job_batch_response_results_inner.py
 test/test_external_job_queue_depth_item.py
