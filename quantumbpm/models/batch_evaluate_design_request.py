@@ -28,7 +28,7 @@ class BatchEvaluateDesignRequest(BaseModel):
     Payload for batch evaluating ad-hoc DMN XML against multiple input rows.
     """ # noqa: E501
     xml: Optional[StrictStr] = Field(default=None, description="DMN XML to evaluate.")
-    inputs: Optional[List[Dict[str, Any]]] = Field(default=None, description="One input context per row to evaluate.")
+    inputs: Optional[List[Dict[str, Optional[object]]]] = Field(default=None, description="One input context per row to evaluate.")
     __properties: ClassVar[List[str]] = ["xml", "inputs"]
 
     model_config = ConfigDict(

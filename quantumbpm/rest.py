@@ -17,6 +17,8 @@ import json
 import re
 import ssl
 
+import simplejson
+
 import urllib3
 
 from quantumbpm.exceptions import ApiException, ApiValueError
@@ -184,7 +186,10 @@ class RESTClientObject:
                 ):
                     request_body = None
                     if body is not None:
-                        request_body = json.dumps(body)
+                        # simplejson + use_decimal emits decimal.Decimal values
+                        # as exact JSON numbers; stdlib json can only narrow
+                        # them to float or mistype them as strings.
+                        request_body = simplejson.dumps(body, use_decimal=True)
                     r = self.pool_manager.request(
                         method,
                         url,

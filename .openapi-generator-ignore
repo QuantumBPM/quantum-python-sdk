@@ -22,10 +22,13 @@
 # Then explicitly reverse the ignore rule for a single file:
 #!docs/README.md
 
-# Custom implementation files that should never be regenerated
-quantumdmn/engine.py
-quantumdmn/auth.py
-quantumdmn/model/feel_value.py
+# Custom implementation files that should never be regenerated.
+# api_client.py / rest.py / models/feel_value.py started generated but are
+# hand-maintained since the exact-decimal patches (parse_float=Decimal,
+# simplejson use_decimal, Decimal in the FeelValue oneOf).
+quantumbpm/api_client.py
+quantumbpm/rest.py
+quantumbpm/models/feel_value.py
 README.md
 
 # Auto-generated CI workflow — we maintain ci.yml + release.yml manually

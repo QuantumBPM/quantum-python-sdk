@@ -13,8 +13,11 @@
 
 
 from __future__ import annotations
+import decimal
 import json
 import pprint
+
+import simplejson
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt, StrictStr, ValidationError, field_validator
 from typing import Any, Dict, List, Optional, Union
 from pydantic import StrictStr, Field
@@ -28,7 +31,7 @@ class FeelValue(BaseModel):
     A FEEL-typed value as it appears in DMN inputs and outputs. May be a number, string, boolean, list, or nested context.
     """
     # data type: float
-    oneof_schema_1_validator: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="FEEL number. Maps to a decimal value at runtime.")
+    oneof_schema_1_validator: Optional[Union[StrictFloat, StrictInt, decimal.Decimal]] = Field(default=None, description="FEEL number. Maps to a decimal value at runtime. decimal.Decimal preserves exact decimals end-to-end.")
     # data type: str
     oneof_schema_2_validator: Optional[StrictStr] = Field(default=None, description="FEEL string. Date, time, and duration values are also represented as strings using the FEEL textual forms (e.g. `\"2026-01-31\"`, `\"PT1H\"`).")
     # data type: bool
@@ -37,7 +40,7 @@ class FeelValue(BaseModel):
     oneof_schema_4_validator: Optional[List[Optional[object]]] = Field(default=None, description="FEEL list. Lists may contain mixed types.")
     # data type: Dict[str, object]
     oneof_schema_5_validator: Optional[Dict[str, Optional[object]]] = Field(default=None, description="FEEL context (a name → value map). The DMN equivalent of an object.")
-    actual_instance: Optional[Union[Dict[str, object], List[object], bool, float, str]] = None
+    actual_instance: Optional[Union[Dict[str, object], List[object], bool, float, decimal.Decimal, str]] = None
     one_of_schemas: Set[str] = { "Dict[str, object]", "List[object]", "bool", "float", "str" }
 
     model_config = ConfigDict(
@@ -105,7 +108,10 @@ class FeelValue(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Union[str, Dict[str, Any]]) -> Self:
-        return cls.from_json(json.dumps(obj))
+        # No JSON round-trip: json.dumps would crash on decimal.Decimal
+        # values (or narrow them); the constructor runs the same oneOf
+        # validation on the value directly.
+        return cls(obj)
 
     @classmethod
     def from_json(cls, json_str: Optional[str]) -> Self:
@@ -120,7 +126,7 @@ class FeelValue(BaseModel):
         # deserialize data into float
         try:
             # validation
-            instance.oneof_schema_1_validator = json.loads(json_str)
+            instance.oneof_schema_1_validator = json.loads(json_str, parse_float=decimal.Decimal)
             # assign value to actual_instance
             instance.actual_instance = instance.oneof_schema_1_validator
             match += 1
@@ -147,7 +153,7 @@ class FeelValue(BaseModel):
         # deserialize data into List[object]
         try:
             # validation
-            instance.oneof_schema_4_validator = json.loads(json_str)
+            instance.oneof_schema_4_validator = json.loads(json_str, parse_float=decimal.Decimal)
             # assign value to actual_instance
             instance.actual_instance = instance.oneof_schema_4_validator
             match += 1
@@ -156,7 +162,7 @@ class FeelValue(BaseModel):
         # deserialize data into Dict[str, object]
         try:
             # validation
-            instance.oneof_schema_5_validator = json.loads(json_str)
+            instance.oneof_schema_5_validator = json.loads(json_str, parse_float=decimal.Decimal)
             # assign value to actual_instance
             instance.actual_instance = instance.oneof_schema_5_validator
             match += 1
@@ -180,7 +186,7 @@ class FeelValue(BaseModel):
         if hasattr(self.actual_instance, "to_json") and callable(self.actual_instance.to_json):
             return self.actual_instance.to_json()
         else:
-            return json.dumps(self.actual_instance)
+            return simplejson.dumps(self.actual_instance, use_decimal=True)
 
     def to_dict(self) -> Optional[Union[Dict[str, Any], Dict[str, object], List[object], bool, float, str]]:
         """Returns the dict representation of the actual instance"""

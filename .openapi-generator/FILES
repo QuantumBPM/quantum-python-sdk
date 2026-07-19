@@ -89,7 +89,6 @@ quantumbpm/__init__.py
 quantumbpm/api/__init__.py
 quantumbpm/api/bpmn_api.py
 quantumbpm/api/default_api.py
-quantumbpm/api_client.py
 quantumbpm/api_response.py
 quantumbpm/configuration.py
 quantumbpm/exceptions.py
@@ -140,7 +139,6 @@ quantumbpm/models/external_job_batch_response.py
 quantumbpm/models/external_job_batch_response_results_inner.py
 quantumbpm/models/external_job_queue_depth_item.py
 quantumbpm/models/external_job_queue_depth_response.py
-quantumbpm/models/feel_value.py
 quantumbpm/models/get_bpmn_instance_variables200_response.py
 quantumbpm/models/get_health200_response.py
 quantumbpm/models/get_version200_response.py
@@ -175,7 +173,6 @@ quantumbpm/models/update_user_task_assignment_request.py
 quantumbpm/models/user_task.py
 quantumbpm/models/validate_bpmn_resource_request.py
 quantumbpm/py.typed
-quantumbpm/rest.py
 requirements.txt
 setup.cfg
 setup.py

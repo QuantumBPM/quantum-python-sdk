@@ -9,9 +9,11 @@ generated client uses.
 
 from __future__ import annotations
 
+import decimal
 import json
 from typing import Any, Mapping, TypeVar, Type, cast
 
+import simplejson
 from pydantic import BaseModel, TypeAdapter
 
 T = TypeVar("T")
@@ -113,8 +115,14 @@ def _coerce(value: Any, type_: Type[T]) -> T:
 
 
 def _json_round_trip(data: Mapping[str, Any]) -> dict[str, Any]:
-    """Round-trip through JSON to normalize Pydantic models, dates, etc."""
-    return cast(dict[str, Any], json.loads(json.dumps(data, default=_json_default)))
+    """Round-trip through JSON to normalize Pydantic models, dates, etc.
+
+    FEEL numbers are exact decimals: serialize Decimal as an exact JSON number
+    (``use_decimal=True``) and parse it back into Decimal (``parse_float``) so
+    the value never narrows to a binary float on the outbound path.
+    """
+    encoded = simplejson.dumps(data, default=_json_default, use_decimal=True)
+    return cast(dict[str, Any], json.loads(encoded, parse_float=decimal.Decimal))
 
 
 def _json_default(o: Any) -> Any:

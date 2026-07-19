@@ -341,7 +341,8 @@ class ApiClient:
         If obj is str, int, long, float, bool, return directly.
         If obj is datetime.datetime, datetime.date
             convert to string in iso8601 format.
-        If obj is decimal.Decimal return string representation.
+        If obj is decimal.Decimal, return it unchanged (the REST layer
+            serializes it as an exact JSON number via simplejson).
         If obj is list, sanitize each element in the list.
         If obj is dict, return the dict.
         If obj is OpenAPI model, return the properties dict.
@@ -370,7 +371,7 @@ class ApiClient:
         elif isinstance(obj, (datetime.datetime, datetime.date)):
             return obj.isoformat()
         elif isinstance(obj, decimal.Decimal):
-            return str(obj)
+            return obj
         elif isinstance(obj, dict):
             return {
                 key: self.sanitize_for_serialization(val)
@@ -402,16 +403,18 @@ class ApiClient:
         """
 
         # fetch data from response object
+        # parse_float=decimal.Decimal: FEEL numbers are exact decimals;
+        # float parsing would silently narrow beyond double precision.
         if content_type is None:
             try:
-                data = json.loads(response_text)
+                data = json.loads(response_text, parse_float=decimal.Decimal)
             except ValueError:
                 data = response_text
         elif re.match(r'^application/(json|[\w!#$&.+\-^_]+\+json)\s*(;|$)', content_type, re.IGNORECASE):
             if response_text == "":
                 data = ""
             else:
-                data = json.loads(response_text)
+                data = json.loads(response_text, parse_float=decimal.Decimal)
         elif re.match(r'^text\/[a-z.+-]+\s*(;|$)', content_type, re.IGNORECASE):
             data = response_text
         else:

@@ -16,6 +16,7 @@ REQUIRES = [
     "pydantic >= 2",
     "typing-extensions >= 4.7.1",
     "PyJWT[crypto] >= 2.8.0",
+    "simplejson >= 3.19",
     "requests >= 2.31.0",
 ]
 

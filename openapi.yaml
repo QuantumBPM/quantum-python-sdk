@@ -8,6 +8,7 @@ paths:
     get:
       summary: Health Check
       operationId: GetHealth
+      x-required-role: public
       responses:
         '200':
           description: OK
@@ -23,6 +24,7 @@ paths:
     get:
       summary: Version
       operationId: GetVersion
+      x-required-role: public
       responses:
         '200':
           description: OK
@@ -44,6 +46,7 @@ paths:
     post:
       summary: Evaluate ad-hoc DMN XML
       operationId: EvaluateDesign
+      x-required-role: authenticated
       description: |
         Evaluates DMN XML supplied in the request without storing it. Useful for
         testing decisions during authoring or for one-off evaluations that do
@@ -103,6 +106,7 @@ paths:
     post:
       summary: Batch evaluate ad-hoc DMN XML against multiple inputs
       operationId: EvaluateDesignBatch
+      x-required-role: authenticated
       description: |
         Evaluates a single DMN document against many input rows in one request.
         Useful for bulk testing during decision authoring (e.g. running a
@@ -128,6 +132,7 @@ paths:
     get:
       summary: List Projects
       operationId: ListProjects
+      x-required-role: authenticated
       description: Lists projects the caller has access to within their account.
       responses:
         '200':
@@ -147,6 +152,7 @@ paths:
     post:
       summary: Create Project
       operationId: CreateProject
+      x-required-role: org-admin
       description: |
         Creates a new project. Projects are workspaces that group DMN definitions
         and BPMN processes for execution and access control. The caller is
@@ -186,6 +192,7 @@ paths:
     get:
       summary: Get Project
       operationId: GetProject
+      x-required-role: viewer
       description: Returns the project's metadata.
       parameters:
         - name: projectID
@@ -223,6 +230,7 @@ paths:
     delete:
       summary: Delete Project
       operationId: DeleteProject
+      x-required-role: admin
       description: |
         Permanently deletes a project and all of its data: DMN definitions and
         executions, BPMN resources and instances, jobs, user tasks, messages,
@@ -261,6 +269,7 @@ paths:
     get:
       summary: List DMN definitions
       operationId: ListDefinitions
+      x-required-role: viewer
       description: Lists all definition versions in the project. Each call to `CreateDefinition` produces a new version.
       parameters:
         - name: projectID
@@ -314,6 +323,7 @@ paths:
     post:
       summary: Create a DMN definition
       operationId: CreateDefinition
+      x-required-role: editor
       description: |
         Stores a new DMN definition. Each call creates a new version
         (auto-incremented). To replace an existing definition, post the new
@@ -360,6 +370,7 @@ paths:
     get:
       summary: List latest DMN definitions
       operationId: ListLatestDefinitions
+      x-required-role: viewer
       description: Returns the most recent version of each unique definition. Use this for picking a definition to evaluate.
       parameters:
         - name: projectID
@@ -418,6 +429,7 @@ paths:
         element of the DMN XML, instead of by the platform-internal `id`.
         Returns the latest version unless a specific version is requested.
       operationId: GetDefinitionByDefinitionsID
+      x-required-role: viewer
       parameters:
         - name: projectID
           in: path
@@ -460,6 +472,7 @@ paths:
     get:
       summary: List all versions of a DMN definition
       operationId: ListDefinitionVersions
+      x-required-role: viewer
       description: Returns every stored version of a definition identified by its DMN `<definitions id>`, newest to oldest.
       parameters:
         - name: projectID
@@ -525,6 +538,7 @@ paths:
         identifier rather than the platform's internal `id`. Defaults to the
         latest deployed version.
       operationId: EvaluateByDefinitionsID
+      x-required-role: executor
       parameters:
         - name: projectID
           in: path
@@ -581,6 +595,7 @@ paths:
     get:
       summary: Get a DMN definition
       operationId: GetDefinition
+      x-required-role: viewer
       description: Returns a single definition version by its platform identifier.
       parameters:
         - name: projectID
@@ -623,6 +638,7 @@ paths:
     put:
       summary: Update a DMN definition's metadata
       operationId: UpdateDefinition
+      x-required-role: editor
       description: Modifies metadata (name) of a stored definition. The DMN XML and version are immutable; post a new definition with the same XML `id` to publish a new version.
       parameters:
         - name: projectID
@@ -671,6 +687,7 @@ paths:
     delete:
       summary: Delete a DMN definition version
       operationId: DeleteDefinition
+      x-required-role: editor
       description: Permanently deletes a single definition version. Past executions of this version remain in history.
       parameters:
         - name: projectID
@@ -710,6 +727,7 @@ paths:
     post:
       summary: Evaluate a stored DMN definition
       operationId: EvaluateStored
+      x-required-role: executor
       description: |
         Evaluates a stored DMN definition against the supplied context.
         Each call is recorded in execution history and counts toward the
@@ -764,6 +782,7 @@ paths:
     get:
       summary: List executions of a DMN definition
       operationId: ListExecutions
+      x-required-role: viewer
       description: Returns paginated execution history for a single definition.
       parameters:
         - name: projectID
@@ -848,6 +867,7 @@ paths:
         latest known version and the owning definition. Useful for picking
         a target decision when wiring a BPMN BusinessRuleTask.
       operationId: ListDecisions
+      x-required-role: viewer
       parameters:
         - name: projectID
           in: path
@@ -891,6 +911,7 @@ paths:
     get:
       summary: List DMN executions across the project
       operationId: ListProjectExecutions
+      x-required-role: viewer
       description: Returns paginated execution history for the entire project, optionally filtered by DMN definition.
       parameters:
         - name: projectID
@@ -958,6 +979,7 @@ paths:
     get:
       summary: Get a single DMN execution
       operationId: GetExecution
+      x-required-role: viewer
       description: Returns the inputs, outputs, and per-decision evaluation results for a single past execution.
       parameters:
         - name: projectID
@@ -1001,6 +1023,7 @@ paths:
     get:
       summary: List BPMN resources
       operationId: ListBpmnResources
+      x-required-role: viewer
       description: Returns all BPMN resource versions in the project, including drafts and deployed versions.
       tags:
         - bpmn
@@ -1031,6 +1054,7 @@ paths:
     post:
       summary: Create a BPMN resource
       operationId: CreateBpmnResource
+      x-required-role: editor
       description: |
         Uploads a new BPMN XML resource as a draft. Drafts can be edited and
         tested but cannot start production instances until they are deployed.
@@ -1061,6 +1085,7 @@ paths:
     get:
       summary: Get a BPMN resource
       operationId: GetBpmnResource
+      x-required-role: viewer
       description: Returns the XML and parsed metadata for a single resource version.
       tags:
         - bpmn
@@ -1087,6 +1112,7 @@ paths:
     put:
       summary: Update a draft BPMN resource
       operationId: UpdateBpmnResource
+      x-required-role: editor
       description: |
         Replaces the XML of an existing draft resource. Once a resource has
         been deployed it is immutable; deploy a new version instead.
@@ -1123,6 +1149,7 @@ paths:
     delete:
       summary: Delete a BPMN resource version
       operationId: DeleteBpmnResource
+      x-required-role: editor
       description: |
         Permanently deletes a single resource version. Past instances of this
         version remain in history. Refused with 409 Conflict while any version
@@ -1151,6 +1178,7 @@ paths:
     post:
       summary: Deploy a BPMN resource
       operationId: DeployBpmnResource
+      x-required-role: editor
       description: |
         Marks all processes inside the resource as executable, making them
         available to start instances of. Deployment is one-way; to change a
@@ -1183,6 +1211,7 @@ paths:
     post:
       summary: Start a test instance from a draft resource
       operationId: StartBpmnTestInstance
+      x-required-role: editor
       description: |
         Starts a process instance against a draft (non-deployed) resource.
         Useful for trying out an in-progress design before deploying.
@@ -1230,6 +1259,7 @@ paths:
     get:
       summary: List the latest version of each BPMN resource
       operationId: ListLatestBpmnResources
+      x-required-role: viewer
       description: Returns one entry per unique BPMN definitions id, with the most recent version's metadata.
       tags:
         - bpmn
@@ -1267,6 +1297,7 @@ paths:
     get:
       summary: List all versions of a BPMN resource
       operationId: ListBpmnResourcesByDefinitionsID
+      x-required-role: viewer
       description: Returns every stored version of a resource identified by the BPMN XML's outer `definitions` id, oldest to newest.
       tags:
         - bpmn
@@ -1309,6 +1340,7 @@ paths:
     post:
       summary: Validate BPMN XML without saving
       operationId: ValidateBpmnXml
+      x-required-role: editor
       description: |
         Parses BPMN XML and reports any structural errors or warnings.
         Useful for showing inline validation in design tools without
@@ -1340,6 +1372,7 @@ paths:
     get:
       summary: List BPMN instances
       operationId: ListBpmnInstances
+      x-required-role: viewer
       description: Returns paginated process instances in the project, optionally filtered by definition or status.
       parameters:
         - name: projectID
@@ -1423,6 +1456,7 @@ paths:
     post:
       summary: Start a BPMN process instance
       operationId: StartBpmnInstance
+      x-required-role: executor
       description: |
         Starts a new instance of a deployed BPMN process. The returned
         `workflowID` is the stable execution identifier — use it to fetch
@@ -1461,6 +1495,7 @@ paths:
     get:
       summary: Get BPMN instance state
       operationId: GetBpmnInstance
+      x-required-role: viewer
       description: |
         Returns the full runtime state of a process instance — current variables,
         activity history, active scopes, and any unresolved incidents. Use this
@@ -1488,6 +1523,7 @@ paths:
     delete:
       summary: Cancel a BPMN instance
       operationId: CancelBpmnInstance
+      x-required-role: editor
       description: |
         Cancels a running instance and all of its active activities, jobs, and
         child instances. Cancellation is best-effort — handlers in flight may
@@ -1512,6 +1548,7 @@ paths:
     get:
       summary: List child instances of a BPMN instance
       operationId: GetBpmnInstanceChildren
+      x-required-role: viewer
       description: |
         Returns instances that this instance spawned via CallActivity elements.
         Useful for navigating into a multi-level process hierarchy (parents
@@ -1541,6 +1578,7 @@ paths:
     get:
       summary: Get BPMN instance variables
       operationId: GetBpmnInstanceVariables
+      x-required-role: viewer
       description: Returns the current variables in the root scope of a running or completed instance.
       tags:
         - bpmn
@@ -1567,9 +1605,11 @@ paths:
                   variables:
                     type: object
                     additionalProperties: true
+                    x-go-type: VariableMap
     put:
       summary: Update BPMN instance variables
       operationId: UpdateBpmnInstanceVariables
+      x-required-role: editor
       description: |
         Sets or replaces variables in the root scope of a running instance.
         The new values become visible to subsequent activities and FEEL
@@ -1599,6 +1639,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
               required:
                 - variables
       responses:
@@ -1608,6 +1649,7 @@ paths:
     post:
       summary: Resolve an incident and retry the failed activity
       operationId: ResolveBpmnIncident
+      x-required-role: editor
       description: |
         Marks an incident as resolved and re-runs the activity that produced it.
         Optional `variables` are merged into the activity's scope before retry —
@@ -1642,6 +1684,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
       responses:
         '200':
           description: OK
@@ -1649,6 +1692,7 @@ paths:
     get:
       summary: List BPMN incidents
       operationId: ListBpmnIncidents
+      x-required-role: viewer
       description: |
         Cross-instance audit listing of incidents in the project. By default
         returns open incidents first (unresolved), ordered by recency.
@@ -1743,6 +1787,7 @@ paths:
     post:
       summary: Migrate a running instance to a newer process version
       operationId: MigrateBpmnInstance
+      x-required-role: editor
       description: |
         Moves a running instance from its current process version to a newer
         one. Element mappings tell the engine how to translate active tokens
@@ -1775,6 +1820,7 @@ paths:
     post:
       summary: Validate a migration plan without executing it
       operationId: ValidateBpmnInstanceMigration
+      x-required-role: editor
       description: |
         Returns the issues a migration plan would hit if executed: missing
         mappings, incompatible element types, active boundary events that
@@ -1811,6 +1857,7 @@ paths:
     post:
       summary: Modify a running instance with ad-hoc token operations
       operationId: ModifyBpmnInstance
+      x-required-role: admin
       description: |
         Operational recovery tool: applies a sequence of token-level
         instructions (start before a node, cancel a token in a scope) to a
@@ -1843,6 +1890,7 @@ paths:
     post:
       summary: Activate an activity inside a running ad-hoc subprocess
       operationId: TriggerBpmnAdHocNode
+      x-required-role: executor
       description: |
         Manually starts one of the activities inside an active ad-hoc
         subprocess. Each call activates a fresh execution; the same activity
@@ -1884,6 +1932,7 @@ paths:
     post:
       summary: Update variables inside a running ad-hoc subprocess
       operationId: SetBpmnAdHocVariables
+      x-required-role: executor
       description: |
         Sets variables in the ad-hoc subprocess scope. Active activities and
         the subprocess's completion condition are re-evaluated against the new
@@ -1917,6 +1966,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
       responses:
         '200':
           description: OK
@@ -1924,6 +1974,7 @@ paths:
     post:
       summary: Suspend a BPMN instance
       operationId: SuspendBpmnInstance
+      x-required-role: admin
       description: |
         Pauses forward token dispatch on a single running instance. The
         instance's lifecycle status stays RUNNING; an orthogonal `suspendedAt`
@@ -1965,6 +2016,7 @@ paths:
     post:
       summary: Resume a suspended BPMN instance
       operationId: ResumeBpmnInstance
+      x-required-role: admin
       description: |
         Clears the instance-scope suspension. If the parent definition is also
         suspended the instance remains effectively paused until the definition
@@ -1990,6 +2042,7 @@ paths:
     post:
       summary: Suspend every running instance of a BPMN definition
       operationId: SuspendBpmnDefinition
+      x-required-role: admin
       description: |
         Pauses every running instance of one deployed process definition AND
         rejects new instance starts on that definition until it is resumed.
@@ -2036,6 +2089,7 @@ paths:
     post:
       summary: Resume a suspended BPMN definition
       operationId: ResumeBpmnDefinition
+      x-required-role: admin
       description: |
         Clears the definition-scope suspension and fans out a resume signal to
         every running instance of the definition. Instances that were also
@@ -2066,6 +2120,7 @@ paths:
     get:
       summary: List external jobs
       operationId: ListBpmnExternalJobs
+      x-required-role: viewer
       description: |
         Returns paginated external jobs in the project, with optional filters
         by `taskType`, `status`, and originating instance. Use this to drive
@@ -2142,6 +2197,7 @@ paths:
         Returns one entry per `taskType` with at least one PENDING job. Useful for
         monitoring queue backlogs and capacity-planning external job workers.
       operationId: GetBpmnExternalJobsQueueDepth
+      x-required-role: viewer
       tags:
         - bpmn
       parameters:
@@ -2169,6 +2225,7 @@ paths:
     post:
       summary: Poll for external jobs (long-poll)
       operationId: PollBpmnExternalJobs
+      x-required-role: executor
       description: |
         Long-polls for PENDING jobs of a given `taskType`. Returns a batch of
         jobs (up to `maxJobs`) as soon as any are available, or `204 No Content`
@@ -2203,6 +2260,7 @@ paths:
     post:
       summary: Extend the lock on an acquired job
       operationId: HeartbeatBpmnExternalJob
+      x-required-role: executor
       description: |
         Refreshes the exclusive lock on a job that the caller previously
         acquired via `Poll`. Call this periodically when handling a job that
@@ -2243,6 +2301,7 @@ paths:
     post:
       summary: Complete an external job
       operationId: CompleteBpmnExternalJob
+      x-required-role: executor
       description: |
         Finalizes an acquired external job successfully. The supplied
         `variables` are merged into the originating instance's scope and the
@@ -2275,6 +2334,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
       responses:
         '200':
           description: OK
@@ -2282,6 +2342,7 @@ paths:
     post:
       summary: Fail an external job with a BPMN error code
       operationId: ThrowBpmnExternalJobError
+      x-required-role: executor
       description: |
         Reports that the worker could not handle the job. The `errorCode` is
         raised as a BPMN error, triggering any matching boundary error event
@@ -2315,6 +2376,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
       responses:
         '200':
           description: OK
@@ -2322,6 +2384,7 @@ paths:
     post:
       summary: Complete External Jobs in Batch
       operationId: CompleteBpmnExternalJobsBatch
+      x-required-role: executor
       description: |
         Completes a batch of external jobs in one request. Each item is
         delivered to its instance in parallel and per-item status is returned
@@ -2361,6 +2424,7 @@ paths:
                       variables:
                         type: object
                         additionalProperties: true
+                        x-go-type: VariableMap
       responses:
         '200':
           description: Per-item batch result
@@ -2372,6 +2436,7 @@ paths:
     post:
       summary: Fail external jobs in batch
       operationId: ThrowBpmnExternalJobErrorsBatch
+      x-required-role: executor
       description: |
         Reports a batch of worker failures in one request. Each item's
         remaining retry budget determines whether it requeues for another
@@ -2416,6 +2481,7 @@ paths:
                       variables:
                         type: object
                         additionalProperties: true
+                        x-go-type: VariableMap
       responses:
         '200':
           description: Per-item batch result
@@ -2427,6 +2493,7 @@ paths:
     get:
       summary: List User Tasks
       operationId: ListBpmnUserTasks
+      x-required-role: executor
       description: |
         Paginated list of user tasks for the project, optionally filtered by
         workflow, status, assignee, candidate user or candidate group.
@@ -2498,6 +2565,7 @@ paths:
     get:
       summary: List User Tasks for the Caller
       operationId: ListBpmnUserTasksForCaller
+      x-required-role: viewer
       description: |
         Returns CREATED user tasks the caller can act on: directly assigned,
         listed in `candidateUsers`, or whose `candidateGroups` overlap any of
@@ -2532,6 +2600,7 @@ paths:
     get:
       summary: Get User Task
       operationId: GetBpmnUserTask
+      x-required-role: viewer
       description: |
         Fetch a single user task by execution key. Allowed for callers with
         Executor (or higher) role on the project, OR for callers who are the
@@ -2565,6 +2634,7 @@ paths:
     patch:
       summary: Update User Task Assignment
       operationId: UpdateBpmnUserTaskAssignment
+      x-required-role: executor
       description: |
         Reassign / change candidates on a CREATED user task. Returns 404 if the
         task does not exist or is no longer in CREATED state. Requires Executor
@@ -2602,6 +2672,7 @@ paths:
     post:
       summary: Complete User Task
       operationId: CompleteBpmnUserTask
+      x-required-role: viewer
       description: |
         Complete a user task with the given variables. Allowed for callers with
         Executor (or higher) role on the project, OR for callers who are the
@@ -2631,6 +2702,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
       responses:
         '200':
           description: OK
@@ -2642,6 +2714,7 @@ paths:
     post:
       summary: Fail a user task with a BPMN error code
       operationId: ThrowBpmnUserTaskError
+      x-required-role: viewer
       description: |
         Reports that the assignee could not complete the task. The `errorCode`
         is raised from the user-task node so any matching boundary error event
@@ -2674,6 +2747,7 @@ paths:
                 variables:
                   type: object
                   additionalProperties: true
+                  x-go-type: VariableMap
       responses:
         '200':
           description: OK
@@ -2685,6 +2759,7 @@ paths:
     post:
       summary: Publish a BPMN message
       operationId: PublishBpmnMessage
+      x-required-role: executor
       description: |
         Publishes a message into the project. Each message is delivered to at
         most one waiting catch event whose subscription matches `messageName`
@@ -2718,6 +2793,7 @@ paths:
                   type: object
                   description: Variables to pass into the receiving instance when the message is delivered.
                   additionalProperties: true
+                  x-go-type: VariableMap
                 ttl:
                   type: string
                   description: |
@@ -2733,6 +2809,7 @@ paths:
     post:
       summary: Publish a BPMN signal
       operationId: PublishBpmnSignal
+      x-required-role: executor
       description: |
         Publishes a signal into the project. Unlike messages, signals are
         broadcast: every catch event whose subscription matches `signalName`
@@ -2764,6 +2841,7 @@ paths:
                   type: object
                   description: Variables to pass into each receiving instance.
                   additionalProperties: true
+                  x-go-type: VariableMap
                 ttl:
                   type: string
                   description: |
@@ -2779,6 +2857,7 @@ paths:
     get:
       summary: List BPMN processes
       operationId: ListBpmnProcesses
+      x-required-role: viewer
       description: |
         Returns one entry per unique process ID with aggregated counts of
         running and completed instances across all deployed versions. Use
@@ -2837,6 +2916,7 @@ paths:
     get:
       summary: List deployed versions of a BPMN process
       operationId: ListBpmnProcessVersions
+      x-required-role: viewer
       description: |
         Returns each deployed version of a single process with its instance
         counts. Useful for picking the source/target version when migrating
@@ -2892,7 +2972,8 @@ components:
   schemas:
     FeelNumber:
       type: number
-      description: FEEL number. Maps to a decimal value at runtime.
+      description: FEEL number. Maps to a decimal value at runtime. Exact decimal semantics end-to-end — the Go types use json.Number so values are never narrowed through float64.
+      x-go-type: json.Number
     FeelString:
       type: string
       description: FEEL string. Date, time, and duration values are also represented as strings using the FEEL textual forms (e.g. `"2026-01-31"`, `"PT1H"`).
@@ -3006,8 +3087,7 @@ components:
           type: array
           description: One input context per row to evaluate.
           items:
-            type: object
-            additionalProperties: true
+            $ref: '#/components/schemas/FeelContext'
     BatchEvaluationResponse:
       type: object
       description: Per-row results from a batch evaluation.
@@ -3407,6 +3487,7 @@ components:
           type: object
           description: Initial process variables.
           additionalProperties: true
+          x-go-type: VariableMap
         businessId:
           type: string
           maxLength: 255
@@ -3585,6 +3666,7 @@ components:
           type: object
           description: Initial process variables. Available to FEEL expressions and service tasks from the first activity onward.
           additionalProperties: true
+          x-go-type: VariableMap
         businessId:
           type: string
           maxLength: 255
@@ -3640,6 +3722,7 @@ components:
           type: object
           description: Variables in scope at the time of the error.
           additionalProperties: true
+          x-go-type: VariableMap
         timestamp:
           type: integer
           format: int64
@@ -3669,6 +3752,7 @@ components:
           type: object
           description: Variables scoped to this instance, excluding inherited parent-scope variables.
           additionalProperties: true
+          x-go-type: VariableMap
     SuspensionEntry:
       type: object
       description: |
@@ -3719,6 +3803,7 @@ components:
           type: object
           description: All variables currently in scope for the root process.
           additionalProperties: true
+          x-go-type: VariableMap
         error:
           type: boolean
           description: True when the instance has an unresolved incident.
@@ -3883,6 +3968,7 @@ components:
           type: object
           description: Variables to merge into the instance scope as part of the migration. Useful for filling in inputs introduced in the target version.
           additionalProperties: true
+          x-go-type: VariableMap
     MigrationValidationResult:
       type: object
       description: Outcome of validating a migration plan without executing it.
@@ -3921,6 +4007,7 @@ components:
           type: object
           description: Variables to inject into the scope for `START_BEFORE_NODE`.
           additionalProperties: true
+          x-go-type: VariableMap
     ModifyBpmnInstanceRequest:
       type: object
       description: Payload for an ad-hoc modification of a running instance. Instructions are applied in order.
@@ -3976,6 +4063,7 @@ components:
           type: object
           description: Input variables resolved by the service task at activity entry.
           additionalProperties: true
+          x-go-type: VariableMap
         parentWorkflowID:
           type: string
           description: Identifier of the parent instance (set when the producing instance was started by a CallActivity).
@@ -4164,6 +4252,7 @@ components:
           type: object
           description: Input variables resolved at activity entry. Available for rendering form defaults.
           additionalProperties: true
+          x-go-type: VariableMap
         headers:
           type: object
           description: Static metadata attached at design time on the user task.
@@ -4187,6 +4276,7 @@ components:
           type: object
           description: Variables submitted alongside the completion or error call. Set for COMPLETED and FAILED tasks.
           additionalProperties: true
+          x-go-type: VariableMap
         createdAt:
           type: string
           format: date-time
