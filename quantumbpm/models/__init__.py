@@ -61,7 +61,6 @@ from quantumbpm.models.external_job_queue_depth_item import ExternalJobQueueDept
 from quantumbpm.models.external_job_queue_depth_response import ExternalJobQueueDepthResponse
 from quantumbpm.models.feel_value import FeelValue
 from quantumbpm.models.get_bpmn_instance_variables200_response import GetBpmnInstanceVariables200Response
-from quantumbpm.models.get_health200_response import GetHealth200Response
 from quantumbpm.models.get_version200_response import GetVersion200Response
 from quantumbpm.models.heartbeat_bpmn_external_job_request import HeartbeatBpmnExternalJobRequest
 from quantumbpm.models.hit_rule import HitRule

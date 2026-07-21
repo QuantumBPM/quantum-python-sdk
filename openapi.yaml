@@ -4,22 +4,6 @@ info:
   version: 1.0.0
   description: Public API for the Go DMN Web application. SDKs are generated from this spec.
 paths:
-  /health:
-    get:
-      summary: Health Check
-      operationId: GetHealth
-      x-required-role: public
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
   /version:
     get:
       summary: Version

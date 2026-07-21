@@ -51,7 +51,6 @@ docs/ExternalJobQueueDepthItem.md
 docs/ExternalJobQueueDepthResponse.md
 docs/FeelValue.md
 docs/GetBpmnInstanceVariables200Response.md
-docs/GetHealth200Response.md
 docs/GetVersion200Response.md
 docs/HeartbeatBpmnExternalJobRequest.md
 docs/HitRule.md
@@ -140,7 +139,6 @@ quantumbpm/models/external_job_batch_response_results_inner.py
 quantumbpm/models/external_job_queue_depth_item.py
 quantumbpm/models/external_job_queue_depth_response.py
 quantumbpm/models/get_bpmn_instance_variables200_response.py
-quantumbpm/models/get_health200_response.py
 quantumbpm/models/get_version200_response.py
 quantumbpm/models/heartbeat_bpmn_external_job_request.py
 quantumbpm/models/hit_rule.py
@@ -228,7 +226,6 @@ test/test_external_job_queue_depth_item.py
 test/test_external_job_queue_depth_response.py
 test/test_feel_value.py
 test/test_get_bpmn_instance_variables200_response.py
-test/test_get_health200_response.py
 test/test_get_version200_response.py
 test/test_heartbeat_bpmn_external_job_request.py
 test/test_hit_rule.py
