@@ -76,6 +76,7 @@ docs/SuspensionEntry.md
 docs/ThrowBpmnExternalJobErrorRequest.md
 docs/ThrowBpmnExternalJobErrorsBatchRequest.md
 docs/ThrowBpmnExternalJobErrorsBatchRequestItemsInner.md
+docs/ThrowBpmnUserTaskErrorRequest.md
 docs/TriggerBpmnAdHocNodeRequest.md
 docs/UpdateBpmnInstanceVariablesRequest.md
 docs/UpdateDefinitionRequest.md
@@ -164,6 +165,7 @@ quantumbpm/models/suspension_entry.py
 quantumbpm/models/throw_bpmn_external_job_error_request.py
 quantumbpm/models/throw_bpmn_external_job_errors_batch_request.py
 quantumbpm/models/throw_bpmn_external_job_errors_batch_request_items_inner.py
+quantumbpm/models/throw_bpmn_user_task_error_request.py
 quantumbpm/models/trigger_bpmn_ad_hoc_node_request.py
 quantumbpm/models/update_bpmn_instance_variables_request.py
 quantumbpm/models/update_definition_request.py
@@ -251,6 +253,7 @@ test/test_suspension_entry.py
 test/test_throw_bpmn_external_job_error_request.py
 test/test_throw_bpmn_external_job_errors_batch_request.py
 test/test_throw_bpmn_external_job_errors_batch_request_items_inner.py
+test/test_throw_bpmn_user_task_error_request.py
 test/test_trigger_bpmn_ad_hoc_node_request.py
 test/test_update_bpmn_instance_variables_request.py
 test/test_update_definition_request.py

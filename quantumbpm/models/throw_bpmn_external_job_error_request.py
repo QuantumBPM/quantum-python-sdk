@@ -28,8 +28,9 @@ class ThrowBpmnExternalJobErrorRequest(BaseModel):
     ThrowBpmnExternalJobErrorRequest
     """ # noqa: E501
     error_code: StrictStr = Field(alias="errorCode")
+    client_id: Optional[StrictStr] = Field(default=None, description="Optional worker identity (the same `clientID` used to poll). When supplied, the error is applied only if this worker still holds the job's lock, so a stale report can't requeue or fail a job a peer is actively holding. Omit for the legacy unchecked behavior. ", alias="clientID")
     variables: Optional[Dict[str, Any]] = None
-    __properties: ClassVar[List[str]] = ["errorCode", "variables"]
+    __properties: ClassVar[List[str]] = ["errorCode", "clientID", "variables"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,6 +84,7 @@ class ThrowBpmnExternalJobErrorRequest(BaseModel):
 
         _obj = cls.model_validate({
             "errorCode": obj.get("errorCode"),
+            "clientID": obj.get("clientID"),
             "variables": obj.get("variables")
         })
         return _obj

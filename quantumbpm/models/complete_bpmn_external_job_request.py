@@ -28,8 +28,9 @@ class CompleteBpmnExternalJobRequest(BaseModel):
     CompleteBpmnExternalJobRequest
     """ # noqa: E501
     workflow_id: StrictStr = Field(description="Workflow ID returned by the poll response.", alias="workflowID")
+    client_id: Optional[StrictStr] = Field(default=None, description="Optional worker identity (the same `clientID` used to poll). When supplied, the completion is applied only if this worker still holds the job's lock; a stale worker whose lease lapsed and whose job a peer re-acquired is rejected as a no-op. Omit for the legacy unchecked behavior. ", alias="clientID")
     variables: Optional[Dict[str, Any]] = None
-    __properties: ClassVar[List[str]] = ["workflowID", "variables"]
+    __properties: ClassVar[List[str]] = ["workflowID", "clientID", "variables"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -83,6 +84,7 @@ class CompleteBpmnExternalJobRequest(BaseModel):
 
         _obj = cls.model_validate({
             "workflowID": obj.get("workflowID"),
+            "clientID": obj.get("clientID"),
             "variables": obj.get("variables")
         })
         return _obj

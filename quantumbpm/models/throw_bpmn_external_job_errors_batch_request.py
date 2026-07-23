@@ -17,8 +17,8 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
 from quantumbpm.models.throw_bpmn_external_job_errors_batch_request_items_inner import ThrowBpmnExternalJobErrorsBatchRequestItemsInner
 from typing import Optional, Set
@@ -29,8 +29,9 @@ class ThrowBpmnExternalJobErrorsBatchRequest(BaseModel):
     """
     ThrowBpmnExternalJobErrorsBatchRequest
     """ # noqa: E501
+    client_id: Optional[StrictStr] = Field(default=None, description="Optional worker identity (the same `clientID` used to poll) applied to every item in the batch — a batch is one worker's report. When supplied, an item is requeued/failed only if this worker still holds its lock; items held by a peer are reported as an error and left untouched. Omit for the legacy unchecked behavior. ", alias="clientID")
     items: Annotated[List[ThrowBpmnExternalJobErrorsBatchRequestItemsInner], Field(min_length=1, max_length=200)]
-    __properties: ClassVar[List[str]] = ["items"]
+    __properties: ClassVar[List[str]] = ["clientID", "items"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -90,6 +91,7 @@ class ThrowBpmnExternalJobErrorsBatchRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
+            "clientID": obj.get("clientID"),
             "items": [ThrowBpmnExternalJobErrorsBatchRequestItemsInner.from_dict(_item) for _item in obj["items"]] if obj.get("items") is not None else None
         })
         return _obj

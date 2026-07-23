@@ -317,6 +317,7 @@ class Worker:
         try:
             body = CompleteBpmnExternalJobRequest(
                 workflowID=raw.workflow_id,
+                clientID=self._client_id,
                 variables=vars.to_wire_map(),
             )
             await asyncio.to_thread(
@@ -332,6 +333,7 @@ class Worker:
         try:
             body = ThrowBpmnExternalJobErrorRequest(
                 errorCode=code,
+                clientID=self._client_id,
                 variables=vars.to_wire_map(),
             )
             await asyncio.to_thread(

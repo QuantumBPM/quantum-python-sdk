@@ -45,6 +45,7 @@ from quantumbpm.models.suspend_bpmn_definition_request import SuspendBpmnDefinit
 from quantumbpm.models.suspend_bpmn_instance_request import SuspendBpmnInstanceRequest
 from quantumbpm.models.throw_bpmn_external_job_error_request import ThrowBpmnExternalJobErrorRequest
 from quantumbpm.models.throw_bpmn_external_job_errors_batch_request import ThrowBpmnExternalJobErrorsBatchRequest
+from quantumbpm.models.throw_bpmn_user_task_error_request import ThrowBpmnUserTaskErrorRequest
 from quantumbpm.models.trigger_bpmn_ad_hoc_node_request import TriggerBpmnAdHocNodeRequest
 from quantumbpm.models.update_bpmn_instance_variables_request import UpdateBpmnInstanceVariablesRequest
 from quantumbpm.models.update_user_task_assignment_request import UpdateUserTaskAssignmentRequest
@@ -9402,7 +9403,7 @@ class BpmnApi:
         self,
         project_id: UUID,
         execution_key: StrictStr,
-        throw_bpmn_external_job_error_request: ThrowBpmnExternalJobErrorRequest,
+        throw_bpmn_user_task_error_request: ThrowBpmnUserTaskErrorRequest,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -9424,8 +9425,8 @@ class BpmnApi:
         :type project_id: UUID
         :param execution_key: (required)
         :type execution_key: str
-        :param throw_bpmn_external_job_error_request: (required)
-        :type throw_bpmn_external_job_error_request: ThrowBpmnExternalJobErrorRequest
+        :param throw_bpmn_user_task_error_request: (required)
+        :type throw_bpmn_user_task_error_request: ThrowBpmnUserTaskErrorRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -9451,7 +9452,7 @@ class BpmnApi:
         _param = self._throw_bpmn_user_task_error_serialize(
             project_id=project_id,
             execution_key=execution_key,
-            throw_bpmn_external_job_error_request=throw_bpmn_external_job_error_request,
+            throw_bpmn_user_task_error_request=throw_bpmn_user_task_error_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -9479,7 +9480,7 @@ class BpmnApi:
         self,
         project_id: UUID,
         execution_key: StrictStr,
-        throw_bpmn_external_job_error_request: ThrowBpmnExternalJobErrorRequest,
+        throw_bpmn_user_task_error_request: ThrowBpmnUserTaskErrorRequest,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -9501,8 +9502,8 @@ class BpmnApi:
         :type project_id: UUID
         :param execution_key: (required)
         :type execution_key: str
-        :param throw_bpmn_external_job_error_request: (required)
-        :type throw_bpmn_external_job_error_request: ThrowBpmnExternalJobErrorRequest
+        :param throw_bpmn_user_task_error_request: (required)
+        :type throw_bpmn_user_task_error_request: ThrowBpmnUserTaskErrorRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -9528,7 +9529,7 @@ class BpmnApi:
         _param = self._throw_bpmn_user_task_error_serialize(
             project_id=project_id,
             execution_key=execution_key,
-            throw_bpmn_external_job_error_request=throw_bpmn_external_job_error_request,
+            throw_bpmn_user_task_error_request=throw_bpmn_user_task_error_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -9556,7 +9557,7 @@ class BpmnApi:
         self,
         project_id: UUID,
         execution_key: StrictStr,
-        throw_bpmn_external_job_error_request: ThrowBpmnExternalJobErrorRequest,
+        throw_bpmn_user_task_error_request: ThrowBpmnUserTaskErrorRequest,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -9578,8 +9579,8 @@ class BpmnApi:
         :type project_id: UUID
         :param execution_key: (required)
         :type execution_key: str
-        :param throw_bpmn_external_job_error_request: (required)
-        :type throw_bpmn_external_job_error_request: ThrowBpmnExternalJobErrorRequest
+        :param throw_bpmn_user_task_error_request: (required)
+        :type throw_bpmn_user_task_error_request: ThrowBpmnUserTaskErrorRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -9605,7 +9606,7 @@ class BpmnApi:
         _param = self._throw_bpmn_user_task_error_serialize(
             project_id=project_id,
             execution_key=execution_key,
-            throw_bpmn_external_job_error_request=throw_bpmn_external_job_error_request,
+            throw_bpmn_user_task_error_request=throw_bpmn_user_task_error_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -9628,7 +9629,7 @@ class BpmnApi:
         self,
         project_id,
         execution_key,
-        throw_bpmn_external_job_error_request,
+        throw_bpmn_user_task_error_request,
         _request_auth,
         _content_type,
         _headers,
@@ -9658,8 +9659,8 @@ class BpmnApi:
         # process the header parameters
         # process the form parameters
         # process the body parameter
-        if throw_bpmn_external_job_error_request is not None:
-            _body_params = throw_bpmn_external_job_error_request
+        if throw_bpmn_user_task_error_request is not None:
+            _body_params = throw_bpmn_user_task_error_request
 
 
 

@@ -36,8 +36,8 @@ from quantumbpm.models.publish_bpmn_message_request import PublishBpmnMessageReq
 from quantumbpm.models.publish_bpmn_signal_request import PublishBpmnSignalRequest
 from quantumbpm.models.start_bpmn_instance_request import StartBpmnInstanceRequest
 from quantumbpm.models.start_bpmn_test_instance_request import StartBpmnTestInstanceRequest
-from quantumbpm.models.throw_bpmn_external_job_error_request import (
-    ThrowBpmnExternalJobErrorRequest,
+from quantumbpm.models.throw_bpmn_user_task_error_request import (
+    ThrowBpmnUserTaskErrorRequest,
 )
 from quantumbpm.models.update_bpmn_instance_variables_request import (
     UpdateBpmnInstanceVariablesRequest,
@@ -355,7 +355,7 @@ class BpmnClient:
         error_code: str,
         vars: Vars | None = None,
     ) -> None:
-        body = ThrowBpmnExternalJobErrorRequest(
+        body = ThrowBpmnUserTaskErrorRequest(
             errorCode=error_code,
             variables=(vars.to_wire_map() if vars else None),
         )

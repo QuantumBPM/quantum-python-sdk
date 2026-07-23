@@ -19,18 +19,17 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
-from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class BatchEvaluateDesignRequest(BaseModel):
+class ThrowBpmnUserTaskErrorRequest(BaseModel):
     """
-    Payload for batch evaluating ad-hoc DMN XML against multiple input rows.
+    ThrowBpmnUserTaskErrorRequest
     """ # noqa: E501
-    xml: Optional[StrictStr] = Field(default=None, description="DMN XML to evaluate.")
-    inputs: Optional[Annotated[List[Dict[str, Optional[object]]], Field(max_length=500)]] = Field(default=None, description="One input context per row to evaluate. At most 500 rows per request.")
-    __properties: ClassVar[List[str]] = ["xml", "inputs"]
+    error_code: StrictStr = Field(alias="errorCode")
+    variables: Optional[Dict[str, Any]] = None
+    __properties: ClassVar[List[str]] = ["errorCode", "variables"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -50,7 +49,7 @@ class BatchEvaluateDesignRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of BatchEvaluateDesignRequest from a JSON string"""
+        """Create an instance of ThrowBpmnUserTaskErrorRequest from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -75,7 +74,7 @@ class BatchEvaluateDesignRequest(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of BatchEvaluateDesignRequest from a dict"""
+        """Create an instance of ThrowBpmnUserTaskErrorRequest from a dict"""
         if obj is None:
             return None
 
@@ -83,8 +82,8 @@ class BatchEvaluateDesignRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "xml": obj.get("xml"),
-            "inputs": obj.get("inputs")
+            "errorCode": obj.get("errorCode"),
+            "variables": obj.get("variables")
         })
         return _obj
 
