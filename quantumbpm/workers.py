@@ -2,8 +2,9 @@
 External job worker runtime. Register a handler per task type with
 ``@worker.handler("task-type")``, then call ``await worker.run(stop_event)``.
 The runtime owns long-polling, lock heartbeats, dispatch, and outcome
-mapping (Complete on success, ThrowError on a BpmnError, ThrowError with
-``WORKER_ERROR`` on any other exception).
+mapping (Complete on success; ThrowError on a BpmnError as a business error
+routed to a boundary immediately, bypassing retries; ThrowError with
+``WORKER_ERROR`` on any other exception as a retryable technical failure).
 """
 
 from __future__ import annotations
@@ -253,6 +254,7 @@ class Worker:
                     raw,
                     "WORKER_ERROR",
                     Vars().set("error", f"decode vars: {exc}"),
+                    retryable=True,
                 )
                 return
 
@@ -277,17 +279,22 @@ class Worker:
                 heartbeat_stop.set()
                 await hb_task
                 mark_bpmn_error(span, be.code)
-                await self._throw_error(raw, be.code, be.variables or Vars())
+                # Business outcome: route to the boundary immediately
+                # (retryable=False), bypassing the retry budget.
+                await self._throw_error(raw, be.code, be.variables or Vars(), retryable=False)
             except Exception as exc:
                 heartbeat_stop.set()
                 await hb_task
                 log.exception("handler %s", r.task_type)
                 mark_worker_error(span, exc)
                 message = self._clamp_worker_error_message(r.task_type, str(exc))
+                # Technical failure: retryable, so the server consumes the retry
+                # budget before surfacing it.
                 await self._throw_error(
                     raw,
                     "WORKER_ERROR",
                     Vars().set("error", message),
+                    retryable=True,
                 )
 
     async def _heartbeat(
@@ -329,11 +336,14 @@ class Worker:
         except Exception as exc:
             log.error("complete %s: %s", raw.execution_key, exc)
 
-    async def _throw_error(self, raw: ExternalJob, code: str, vars: Vars) -> None:
+    async def _throw_error(
+        self, raw: ExternalJob, code: str, vars: Vars, retryable: bool
+    ) -> None:
         try:
             body = ThrowBpmnExternalJobErrorRequest(
                 errorCode=code,
                 clientID=self._client_id,
+                retryable=retryable,
                 variables=vars.to_wire_map(),
             )
             await asyncio.to_thread(

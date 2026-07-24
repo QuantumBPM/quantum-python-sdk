@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
@@ -29,8 +29,9 @@ class ThrowBpmnExternalJobErrorRequest(BaseModel):
     """ # noqa: E501
     error_code: StrictStr = Field(alias="errorCode")
     client_id: Optional[StrictStr] = Field(default=None, description="Optional worker identity (the same `clientID` used to poll). When supplied, the error is applied only if this worker still holds the job's lock, so a stale report can't requeue or fail a job a peer is actively holding. Omit for the legacy unchecked behavior. ", alias="clientID")
+    retryable: Optional[StrictBool] = Field(default=True, description="Whether this failure should consume the retry budget before reaching the process. `true` (default) treats it as a technical failure: requeue while retries remain, raise the BPMN error only at exhaustion. `false` treats `errorCode` as a business BPMN error and raises it immediately, bypassing retries so a boundary error event fires (or an incident is raised) at once. SDK workers set `false` for a handler-thrown `BpmnError` and `true` for any other exception. ")
     variables: Optional[Dict[str, Any]] = None
-    __properties: ClassVar[List[str]] = ["errorCode", "clientID", "variables"]
+    __properties: ClassVar[List[str]] = ["errorCode", "clientID", "retryable", "variables"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -85,6 +86,7 @@ class ThrowBpmnExternalJobErrorRequest(BaseModel):
         _obj = cls.model_validate({
             "errorCode": obj.get("errorCode"),
             "clientID": obj.get("clientID"),
+            "retryable": obj.get("retryable") if obj.get("retryable") is not None else True,
             "variables": obj.get("variables")
         })
         return _obj

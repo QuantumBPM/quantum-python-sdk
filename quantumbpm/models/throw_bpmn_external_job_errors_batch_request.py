@@ -17,7 +17,7 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
 from typing_extensions import Annotated
 from quantumbpm.models.throw_bpmn_external_job_errors_batch_request_items_inner import ThrowBpmnExternalJobErrorsBatchRequestItemsInner
@@ -30,8 +30,9 @@ class ThrowBpmnExternalJobErrorsBatchRequest(BaseModel):
     ThrowBpmnExternalJobErrorsBatchRequest
     """ # noqa: E501
     client_id: Optional[StrictStr] = Field(default=None, description="Optional worker identity (the same `clientID` used to poll) applied to every item in the batch — a batch is one worker's report. When supplied, an item is requeued/failed only if this worker still holds its lock; items held by a peer are reported as an error and left untouched. Omit for the legacy unchecked behavior. ", alias="clientID")
+    retryable: Optional[StrictBool] = Field(default=True, description="Applies to every item in the batch. `true` (default) consumes each item's retry budget before raising its BPMN error; `false` raises every item's `errorCode` as a business BPMN error immediately, bypassing retries. See the single-job error endpoint for the full semantics. ")
     items: Annotated[List[ThrowBpmnExternalJobErrorsBatchRequestItemsInner], Field(min_length=1, max_length=200)]
-    __properties: ClassVar[List[str]] = ["clientID", "items"]
+    __properties: ClassVar[List[str]] = ["clientID", "retryable", "items"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -92,6 +93,7 @@ class ThrowBpmnExternalJobErrorsBatchRequest(BaseModel):
 
         _obj = cls.model_validate({
             "clientID": obj.get("clientID"),
+            "retryable": obj.get("retryable") if obj.get("retryable") is not None else True,
             "items": [ThrowBpmnExternalJobErrorsBatchRequestItemsInner.from_dict(_item) for _item in obj["items"]] if obj.get("items") is not None else None
         })
         return _obj

@@ -8835,7 +8835,7 @@ class BpmnApi:
     ) -> None:
         """Fail an external job with a BPMN error code
 
-        Reports that the worker could not handle the job. The `errorCode` is raised as a BPMN error, triggering any matching boundary error event on the originating service task. If the job has remaining retries it is requeued; otherwise the originating instance gets an incident. 
+        Reports that the worker could not handle the job.  The `retryable` flag decides how the failure is treated:  * `retryable: true` (the default) - a **technical/transient** failure.   If the job has remaining retries it is requeued for another attempt   and the retry budget is decremented; the process is NOT notified. Only   once retries are exhausted is the `errorCode` raised as a BPMN error,   triggering any matching boundary error event on the originating service   task (or an incident if none matches). * `retryable: false` - a **business** BPMN error. The `errorCode` is   raised on the process immediately, bypassing the retry budget entirely,   so a matching boundary error event fires (or an incident is raised)   without wasting retries. Use this for domain outcomes a retry could   never fix (e.g. `PAYMENT_DECLINED`). SDK workers send this automatically   when a handler throws a typed `BpmnError`. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -8910,7 +8910,7 @@ class BpmnApi:
     ) -> ApiResponse[None]:
         """Fail an external job with a BPMN error code
 
-        Reports that the worker could not handle the job. The `errorCode` is raised as a BPMN error, triggering any matching boundary error event on the originating service task. If the job has remaining retries it is requeued; otherwise the originating instance gets an incident. 
+        Reports that the worker could not handle the job.  The `retryable` flag decides how the failure is treated:  * `retryable: true` (the default) - a **technical/transient** failure.   If the job has remaining retries it is requeued for another attempt   and the retry budget is decremented; the process is NOT notified. Only   once retries are exhausted is the `errorCode` raised as a BPMN error,   triggering any matching boundary error event on the originating service   task (or an incident if none matches). * `retryable: false` - a **business** BPMN error. The `errorCode` is   raised on the process immediately, bypassing the retry budget entirely,   so a matching boundary error event fires (or an incident is raised)   without wasting retries. Use this for domain outcomes a retry could   never fix (e.g. `PAYMENT_DECLINED`). SDK workers send this automatically   when a handler throws a typed `BpmnError`. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -8985,7 +8985,7 @@ class BpmnApi:
     ) -> RESTResponseType:
         """Fail an external job with a BPMN error code
 
-        Reports that the worker could not handle the job. The `errorCode` is raised as a BPMN error, triggering any matching boundary error event on the originating service task. If the job has remaining retries it is requeued; otherwise the originating instance gets an incident. 
+        Reports that the worker could not handle the job.  The `retryable` flag decides how the failure is treated:  * `retryable: true` (the default) - a **technical/transient** failure.   If the job has remaining retries it is requeued for another attempt   and the retry budget is decremented; the process is NOT notified. Only   once retries are exhausted is the `errorCode` raised as a BPMN error,   triggering any matching boundary error event on the originating service   task (or an incident if none matches). * `retryable: false` - a **business** BPMN error. The `errorCode` is   raised on the process immediately, bypassing the retry budget entirely,   so a matching boundary error event fires (or an incident is raised)   without wasting retries. Use this for domain outcomes a retry could   never fix (e.g. `PAYMENT_DECLINED`). SDK workers send this automatically   when a handler throws a typed `BpmnError`. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -9130,7 +9130,7 @@ class BpmnApi:
     ) -> ExternalJobBatchResponse:
         """Fail external jobs in batch
 
-        Reports a batch of worker failures in one request. Each item's remaining retry budget determines whether it requeues for another attempt or surfaces as an incident on the originating instance. Per-item status is returned so a partial failure does not sink the whole batch. 
+        Reports a batch of worker failures in one request. With `retryable: true` (the default) each item's remaining retry budget decides whether it requeues for another attempt or surfaces its `errorCode` as a BPMN error/incident on the originating instance. With `retryable: false` every item is treated as a business BPMN error and raised immediately, bypassing the retry budget (see the single-job error endpoint for the full semantics). Per-item status is returned so a partial failure does not sink the whole batch. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -9201,7 +9201,7 @@ class BpmnApi:
     ) -> ApiResponse[ExternalJobBatchResponse]:
         """Fail external jobs in batch
 
-        Reports a batch of worker failures in one request. Each item's remaining retry budget determines whether it requeues for another attempt or surfaces as an incident on the originating instance. Per-item status is returned so a partial failure does not sink the whole batch. 
+        Reports a batch of worker failures in one request. With `retryable: true` (the default) each item's remaining retry budget decides whether it requeues for another attempt or surfaces its `errorCode` as a BPMN error/incident on the originating instance. With `retryable: false` every item is treated as a business BPMN error and raised immediately, bypassing the retry budget (see the single-job error endpoint for the full semantics). Per-item status is returned so a partial failure does not sink the whole batch. 
 
         :param project_id: (required)
         :type project_id: UUID
@@ -9272,7 +9272,7 @@ class BpmnApi:
     ) -> RESTResponseType:
         """Fail external jobs in batch
 
-        Reports a batch of worker failures in one request. Each item's remaining retry budget determines whether it requeues for another attempt or surfaces as an incident on the originating instance. Per-item status is returned so a partial failure does not sink the whole batch. 
+        Reports a batch of worker failures in one request. With `retryable: true` (the default) each item's remaining retry budget decides whether it requeues for another attempt or surfaces its `errorCode` as a BPMN error/incident on the originating instance. With `retryable: false` every item is treated as a business BPMN error and raised immediately, bypassing the retry budget (see the single-job error endpoint for the full semantics). Per-item status is returned so a partial failure does not sink the whole batch. 
 
         :param project_id: (required)
         :type project_id: UUID
