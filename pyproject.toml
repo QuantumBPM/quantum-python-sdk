@@ -1,7 +1,7 @@
 [project]
 name = "quantumbpm-sdk"
 version = "1.0.0"
-description = "QuantumBPM Python SDK — DMN evaluation, BPMN orchestration, and external job workers."
+description = "QuantumBPM Python SDK - DMN evaluation, BPMN orchestration, and external job workers."
 authors = [
   {name = "QuantumBPM",email = "support@quantumbpm.com"},
 ]

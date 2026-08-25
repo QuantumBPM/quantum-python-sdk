@@ -1,7 +1,7 @@
 # coding: utf-8
 
 """
-QuantumBPM Python SDK — DMN evaluation, BPMN orchestration, and external
+QuantumBPM Python SDK - DMN evaluation, BPMN orchestration, and external
 job workers.
 """
 
@@ -23,7 +23,7 @@ REQUIRES = [
 setup(
     name=NAME,
     version=VERSION,
-    description="QuantumBPM Python SDK — DMN evaluation, BPMN orchestration, and external job workers.",
+    description="QuantumBPM Python SDK - DMN evaluation, BPMN orchestration, and external job workers.",
     author="QuantumBPM",
     author_email="support@quantumbpm.com",
     url="https://quantumbpm.com",
@@ -33,6 +33,6 @@ setup(
     packages=find_packages(exclude=["test", "tests"]),
     include_package_data=True,
     long_description_content_type="text/markdown",
-    long_description="QuantumBPM Python SDK — DMN evaluation, BPMN orchestration, and external job workers.",
+    long_description="QuantumBPM Python SDK - DMN evaluation, BPMN orchestration, and external job workers.",
     package_data={"quantumbpm": ["py.typed"]},
 )

@@ -35,7 +35,7 @@ def test_job_exposes_business_id_when_present():
 
     raw = make_raw(business_id="ORDER-42")
 
-    # Avoid the real API path for complete/heartbeat — they're not under test.
+    # Avoid the real API path for complete/heartbeat - they're not under test.
     async def noop(*_args, **_kwargs):
         return None
 

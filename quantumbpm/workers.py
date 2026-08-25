@@ -51,7 +51,7 @@ class BpmnError(Exception):
     """
     Raise from a handler to fail the job with a BPMN error code. The runtime
     translates it into a ThrowError call against the originating service task
-    — matching boundary error events on the task can then route the exception
+    - matching boundary error events on the task can then route the exception
     in the BPMN model.
     """
 

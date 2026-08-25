@@ -51,8 +51,8 @@ from quantumbpm.variables import Vars
 
 class BpmnClient:
     """
-    Wraps the BPMN engine endpoints — resources, instances, messaging, user
-    tasks, processes — for a single project.
+    Wraps the BPMN engine endpoints - resources, instances, messaging, user
+    tasks, processes - for a single project.
     """
 
     def __init__(self, api_client: ApiClient, project_id: str | UUID) -> None:

@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: Go DMN Web API (Public)
-  version: 1.0.0
-  description: Public API for the Go DMN Web application. SDKs are generated from this spec.
+  title: QuantumBPM API (Public)
+  version: 1.5.0
+  description: Public API for the QuantumBPM application. SDKs are generated from this spec.
 paths:
   /version:
     get:
@@ -917,6 +917,13 @@ paths:
             type: string
             maxLength: 255
           description: Exact-match filter on the caller-supplied correlation key.
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Only return executions at or after this instant (ISO 8601). Bounds the scan and the reported total; omit for the full unbounded history.
         - name: page
           in: query
           required: false
@@ -1129,7 +1136,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/BpmnResourceDetail'
         '409':
-          description: Conflict — resource is already deployed
+          description: Conflict - resource is already deployed
     delete:
       summary: Delete a BPMN resource version
       operationId: DeleteBpmnResource
@@ -1157,7 +1164,7 @@ paths:
         '204':
           description: No Content
         '409':
-          description: Conflict — resource has running instances
+          description: Conflict - resource has running instances
   /projects/{projectID}/bpmn/resources/{resourceID}/deploy:
     post:
       summary: Deploy a BPMN resource
@@ -1395,11 +1402,12 @@ paths:
           in: query
           required: false
           description: |
-            Filter by instance-scope suspension. `true` → only instances with
-            `suspendedAt` set; `false` → only running-and-not-paused. Omit for
-            no filter. Does not consider definition-scope suspension; for a
-            full "is this instance making progress?" view, callers should
-            additionally join against the parent definition.
+            Filter by effective suspension - either scope counts. `true` → only
+            instances paused at instance scope (`suspendedAt` set) or whose
+            definition is paused (`definitionSuspended`); `false` → only
+            instances paused at neither scope. Omit for no filter. Read those
+            two row fields to tell the scopes apart; resume acts on one scope
+            at a time.
           schema:
             type: boolean
         - name: createdAfter
@@ -1410,7 +1418,7 @@ paths:
             format: date-time
           description: |
             Only return instances created at or after this timestamp. Strongly
-            recommended for monitoring views — terminal-state instance rows
+            recommended for monitoring views - terminal-state instance rows
             accumulate indefinitely, and unfiltered queries grow linearly with
             that history.
         - name: businessId
@@ -1443,7 +1451,7 @@ paths:
       x-required-role: executor
       description: |
         Starts a new instance of a deployed BPMN process. The returned
-        `workflowID` is the stable execution identifier — use it to fetch
+        `workflowID` is the stable execution identifier - use it to fetch
         state, send signals/messages, complete user tasks, etc.
       parameters:
         - name: projectID
@@ -1481,7 +1489,7 @@ paths:
       operationId: GetBpmnInstance
       x-required-role: viewer
       description: |
-        Returns the full runtime state of a process instance — current variables,
+        Returns the full runtime state of a process instance - current variables,
         activity history, active scopes, and any unresolved incidents. Use this
         to render dashboards or to drive operational decisions on a single
         instance.
@@ -1510,7 +1518,7 @@ paths:
       x-required-role: editor
       description: |
         Cancels a running instance and all of its active activities, jobs, and
-        child instances. Cancellation is best-effort — handlers in flight may
+        child instances. Cancellation is best-effort - handlers in flight may
         still complete before the cancel propagates. Cancelled instances move
         to status `CANCELED` and stop consuming further work.
       parameters:
@@ -1636,7 +1644,7 @@ paths:
       x-required-role: editor
       description: |
         Marks an incident as resolved and re-runs the activity that produced it.
-        Optional `variables` are merged into the activity's scope before retry —
+        Optional `variables` are merged into the activity's scope before retry -
         use this to fix the input that caused the failure (e.g. correct a value
         that triggered a FEEL evaluation error).
       tags:
@@ -1705,7 +1713,7 @@ paths:
         - name: workflowID
           in: query
           required: false
-          description: Restrict to incidents on a single instance — useful for an instance-detail "all incidents ever raised here" view that includes resolved rows.
+          description: Restrict to incidents on a single instance - useful for an instance-detail "all incidents ever raised here" view that includes resolved rows.
           schema:
             type: string
         - name: status
@@ -1735,6 +1743,11 @@ paths:
               - TimerResolution
               - LinkNotFound
               - MigrationError
+              - SubscriptionError
+              - RotationLimitError
+              - SnapshotSizeExceeded
+              - CallActivityCanceled
+              - ExternalRowRefreshError
               - Unknown
         - name: since
           in: query
@@ -1962,7 +1975,7 @@ paths:
       description: |
         Pauses forward token dispatch on a single running instance. The
         instance's lifecycle status stays RUNNING; an orthogonal `suspendedAt`
-        flag layers on top. Idempotent — a second call against an already-
+        flag layers on top. Idempotent - a second call against an already-
         suspended instance is a no-op.
 
         While suspended: cancel / terminate / migrate / force-rotate / resolve-
@@ -2036,7 +2049,7 @@ paths:
         It then iterates over every running instance (`status='RUNNING'`) and
         sends each one a definition-scope suspend signal via the engine API.
         Instances that were also explicitly instance-suspended stay paused
-        after a definition-scope resume — the operator must clear that scope
+        after a definition-scope resume - the operator must clear that scope
         too.
 
         Idempotent. The reason cascades to every affected instance's history
@@ -2155,7 +2168,7 @@ paths:
             format: date-time
           description: |
             Only return jobs created at or after this timestamp. Strongly
-            recommended for monitoring views — completed-job records accumulate
+            recommended for monitoring views - completed-job records accumulate
             indefinitely, and unfiltered queries grow linearly with that history.
         - name: page
           in: query
@@ -2214,7 +2227,7 @@ paths:
         Long-polls for PENDING jobs of a given `taskType`. Returns a batch of
         jobs (up to `maxJobs`) as soon as any are available, or `204 No Content`
         when the timeout elapses with no work. Each returned job is exclusively
-        leased to the caller for `lockDuration` — call `Heartbeat` to extend
+        leased to the caller for `lockDuration` - call `Heartbeat` to extend
         the lock, then `Complete` or `ThrowError` to finalize.
       parameters:
         - name: projectID
@@ -2435,7 +2448,7 @@ paths:
                   type: string
                   description: |
                     Optional worker identity (the same `clientID` used to poll)
-                    applied to every item in the batch — a batch is one worker's
+                    applied to every item in the batch - a batch is one worker's
                     report. When supplied, an item is completed only if this
                     worker still holds its lock; items re-acquired by a peer drop
                     out silently. Omit for the legacy unchecked behavior.
@@ -2500,7 +2513,7 @@ paths:
                   type: string
                   description: |
                     Optional worker identity (the same `clientID` used to poll)
-                    applied to every item in the batch — a batch is one worker's
+                    applied to every item in the batch - a batch is one worker's
                     report. When supplied, an item is requeued/failed only if this
                     worker still holds its lock; items held by a peer are reported
                     as an error and left untouched. Omit for the legacy unchecked
@@ -2658,7 +2671,7 @@ paths:
         Fetch a single user task by execution key. Allowed for callers with
         Executor (or higher) role on the project, OR for callers who are the
         task's assignee, listed in candidateUsers, or whose identity groups
-        overlap candidateGroups — same access semantics as Complete and Error.
+        overlap candidateGroups - same access semantics as Complete and Error.
       tags:
         - bpmn
       parameters:
@@ -2681,7 +2694,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UserTask'
         '403':
-          description: Forbidden — caller is not Executor and not assigned to the task
+          description: Forbidden - caller is not Executor and not assigned to the task
         '404':
           description: Not Found
     patch:
@@ -2760,7 +2773,7 @@ paths:
         '200':
           description: OK
         '403':
-          description: Forbidden — caller is not Executor and not assigned to the task
+          description: Forbidden - caller is not Executor and not assigned to the task
         '404':
           description: User task not found
   /projects/{projectID}/bpmn/user-tasks/{executionKey}/error:
@@ -2805,7 +2818,7 @@ paths:
         '200':
           description: OK
         '403':
-          description: Forbidden — caller is not Executor and not assigned to the task
+          description: Forbidden - caller is not Executor and not assigned to the task
         '404':
           description: User task not found
   /projects/{projectID}/bpmn/messages:
@@ -2950,10 +2963,20 @@ paths:
             format: date-time
           description: |
             Bounds the totalCount aggregate to instances created at or after this
-            timestamp. Strongly recommended for monitoring views — instance
+            timestamp. Strongly recommended for monitoring views - instance
             history accumulates indefinitely and unfiltered totals scan the full
             table per definition. runningCount ignores this filter (it is always
             point-in-time).
+        - name: suspended
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: |
+            Filter by paused versions. `true` → only processes with at least one
+            paused version; `false` → only processes with none. Omit for no
+            filter. This is the cross-process answer to "which definitions are
+            paused?"; `suspendedVersionCount` on each row says how many.
       responses:
         '200':
           description: OK
@@ -3010,6 +3033,14 @@ paths:
             Bounds the totalCount aggregate to instances created at or after this
             timestamp. See ListBpmnProcesses for rationale. runningCount ignores
             this filter.
+        - name: suspended
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: |
+            Filter by definition-scope suspension. `true` → only paused versions;
+            `false` → only active ones. Omit for no filter.
       responses:
         '200':
           description: OK
@@ -3025,7 +3056,7 @@ components:
   schemas:
     FeelNumber:
       type: number
-      description: FEEL number. Maps to a decimal value at runtime. Exact decimal semantics end-to-end — the Go types use json.Number so values are never narrowed through float64.
+      description: FEEL number. Maps to a decimal value at runtime. Exact decimal semantics end-to-end - the Go types use json.Number so values are never narrowed through float64.
       x-go-type: json.Number
     FeelString:
       type: string
@@ -3079,10 +3110,10 @@ components:
           type: string
           description: |
             Kind of DMN element that produced this result:
-              * `DECISION` — a decision node, the typical case.
-              * `DECISION_SERVICE` — a decision service that aggregates multiple decisions.
-              * `BKM` — a business knowledge model (reusable invocable logic).
-              * `INPUT_DATA` — an input variable, included for context, not evaluated.
+              * `DECISION` - a decision node, the typical case.
+              * `DECISION_SERVICE` - a decision service that aggregates multiple decisions.
+              * `BKM` - a business knowledge model (reusable invocable logic).
+              * `INPUT_DATA` - an input variable, included for context, not evaluated.
           enum:
             - DECISION
             - DECISION_SERVICE
@@ -3111,11 +3142,11 @@ components:
           type: string
           description: |
             Machine-readable error category. Values:
-              * `BAD_REQUEST` — request is malformed or fails validation.
-              * `UNAUTHORIZED` — request lacks or has an invalid authentication token.
-              * `FORBIDDEN` — caller is authenticated but lacks permission, or has hit a quota.
-              * `NOT_FOUND` — the addressed resource does not exist.
-              * `INTERNAL_ERROR` — unexpected server-side failure.
+              * `BAD_REQUEST` - request is malformed or fails validation.
+              * `UNAUTHORIZED` - request lacks or has an invalid authentication token.
+              * `FORBIDDEN` - caller is authenticated but lacks permission, or has hit a quota.
+              * `NOT_FOUND` - the addressed resource does not exist.
+              * `INTERNAL_ERROR` - unexpected server-side failure.
           enum:
             - BAD_REQUEST
             - UNAUTHORIZED
@@ -3462,6 +3493,12 @@ components:
           type: string
           format: date-time
           description: Timestamp when this version was uploaded.
+        hasSuspendedDefinition:
+          type: boolean
+          description: |
+            True when at least one process definition inside this resource version
+            is paused. Populated on list endpoints; absent on single-resource
+            reads, where the per-process `suspendedAt` is the precise answer.
     BpmnResourcePaginatedResponse:
       type: object
       description: Page of BPMN resource versions.
@@ -3519,6 +3556,13 @@ components:
           type: string
           format: date-time
           description: Timestamp when this version became available.
+        suspendedAt:
+          type: string
+          format: date-time
+          description: Timestamp at which this process definition was paused. Empty when active.
+        suspendReason:
+          type: string
+          description: Free-text reason captured at suspend time.
     BpmnResourceDetail:
       description: A BPMN resource together with the parsed processes it contains.
       allOf:
@@ -3573,6 +3617,12 @@ components:
         isDeployed:
           type: boolean
           description: Whether the latest version is deployed.
+        hasSuspendedDefinition:
+          type: boolean
+          description: |
+            True when any version under this `definitionsID` contains a paused
+            process definition - including older versions, since a pause on a
+            superseded version is exactly what's hard to find otherwise.
         createdAt:
           type: string
           format: date-time
@@ -3648,7 +3698,7 @@ components:
           description: ID of the deployed BPMN process definition this instance is running.
         workflowID:
           type: string
-          description: Stable execution identifier for this instance. Use this to address the instance in all API calls — fetch state, send signals/messages, complete user tasks, list children, cancel, etc.
+          description: Stable execution identifier for this instance. Use this to address the instance in all API calls - fetch state, send signals/messages, complete user tasks, list children, cancel, etc.
         parentWorkflowID:
           type: string
           description: Execution identifier of the parent instance that started this one via a CallActivity. Empty for top-level instances.
@@ -3675,21 +3725,27 @@ components:
           description: Timestamp when the instance reached a terminal status. Empty while running.
         hasIncident:
           type: boolean
-          description: True when at least one unresolved incident is currently attached to this instance. Computed at query time against the open-incidents index — useful for rendering a "needs attention" indicator in instance lists without paying for a per-row state fetch from the engine.
+          description: True when at least one unresolved incident is currently attached to this instance. Computed at query time against the open-incidents index - useful for rendering a "needs attention" indicator in instance lists without paying for a per-row state fetch from the engine.
         suspendedAt:
           type: string
           format: date-time
           description: |
             Timestamp at which this instance was paused at INSTANCE scope. Empty
             when not instance-suspended. The instance may still be effectively
-            suspended via its definition — call `GetBpmnInstance` to read both
-            scopes if you need the full picture.
+            suspended via its definition - see `definitionSuspended`.
         suspendedBy:
           type: string
           description: Operator who suspended this instance (instance scope). Empty when not instance-suspended.
         suspendReason:
           type: string
           description: Free-text reason captured at suspend time.
+        definitionSuspended:
+          type: boolean
+          description: |
+            True when the process definition this instance runs is paused. Token
+            dispatch stops while either scope is set, so an instance is
+            effectively paused if this is true or `suspendedAt` is present. The
+            two stay separate because resume acts on one scope at a time.
         businessId:
           type: string
           description: Caller-supplied correlation key set when the instance was started. Inherited unchanged on child instances spawned via CallActivity.
@@ -3741,6 +3797,12 @@ components:
         executionKey:
           type: string
           description: Execution key of the activity that failed.
+        parentScopeID:
+          type: string
+          description: ID of the scope containing `scopeID`, empty for the root scope. Scope IDs are opaque, so this is how a client walks a failure back up the process tree.
+        miIndex:
+          type: integer
+          description: Zero-based multi-instance body index when the failure happened inside one iteration of a multi-instance activity. Absent otherwise.
         errorMessage:
           type: string
           description: Human-readable description of the error.
@@ -3751,16 +3813,21 @@ components:
           type: string
           description: |
             Category of the error. Values:
-              * `BpmnError` — A `bpmn:error` thrown by the process or an external job worker.
-              * `EscalationError` — A `bpmn:escalation` raised by the process.
-              * `CompensationError` — Failure during compensation handler execution.
-              * `FeelError` — A FEEL expression failed to evaluate.
-              * `NoHandler` — A thrown error/escalation has no matching catch event.
-              * `GatewayNoMatch` — An exclusive gateway evaluated all conditions to false with no default flow.
-              * `TimerResolution` — A timer expression could not be parsed or resolved.
-              * `LinkNotFound` — A link throw event has no matching link catch.
-              * `MigrationError` — A process instance migration could not be applied.
-              * `Unknown` — Internal error not classified above.
+              * `BpmnError` - A `bpmn:error` thrown by the process or an external job worker.
+              * `EscalationError` - A `bpmn:escalation` raised by the process.
+              * `CompensationError` - Failure during compensation handler execution.
+              * `FeelError` - A FEEL expression failed to evaluate.
+              * `NoHandler` - A thrown error/escalation has no matching catch event.
+              * `GatewayNoMatch` - An exclusive gateway evaluated all conditions to false with no default flow.
+              * `TimerResolution` - A timer expression could not be parsed or resolved.
+              * `LinkNotFound` - A link throw event has no matching link catch.
+              * `MigrationError` - A process instance migration could not be applied.
+              * `SubscriptionError` - A message/signal listener's registry row could not be written; the listener is dead until resolved.
+              * `RotationLimitError` - The instance reached its ContinueAsNew rotation cap.
+              * `SnapshotSizeExceeded` - A ContinueAsNew snapshot exceeded the configured size cap.
+              * `CallActivityCanceled` - A call-activity child terminated as Canceled out-of-band.
+              * `ExternalRowRefreshError` - A migration could not rewrite a parked wait's external row (job, user task or subscription) against the target definition. Resolving re-runs the refresh.
+              * `Unknown` - Internal error not classified above.
           enum:
             - BpmnError
             - EscalationError
@@ -3771,6 +3838,11 @@ components:
             - TimerResolution
             - LinkNotFound
             - MigrationError
+            - SubscriptionError
+            - RotationLimitError
+            - SnapshotSizeExceeded
+            - CallActivityCanceled
+            - ExternalRowRefreshError
             - Unknown
         variables:
           type: object
@@ -3795,10 +3867,10 @@ components:
           type: string
           description: ID of the BPMN element that created this scope (e.g. a sub-process node). Empty for the root scope.
         activeNodes:
-          type: array
-          description: IDs of flow nodes that currently hold live tokens within this scope.
-          items:
-            type: string
+          type: object
+          description: 'Live token count per flow node in this scope, keyed by node ID. A node can hold more than one token at a time (a parallel fork whose branches re-converge without a join, a non-interrupting boundary handler, a loop edge re-entering a node a prior token has not left yet), so the count matters: a presence-only list cannot tell one token from five. Absent keys mean no live token.'
+          additionalProperties:
+            type: integer
         processVersion:
           type: integer
           description: Version of the process definition active in this scope.
@@ -3811,7 +3883,7 @@ components:
       type: object
       description: |
         Audit-shaped record of an active suspension at one scope (instance or
-        definition). Returned inline on `BpmnInstanceState` — `null` when not
+        definition). Returned inline on `BpmnInstanceState` - `null` when not
         suspended at that scope. An instance is "effectively suspended" if either
         scope's entry is present; the dispatcher pauses forward token dispatch
         while either flag is set.
@@ -3879,7 +3951,7 @@ components:
           description: |
             Present when this instance has been explicitly suspended by an
             operator. Persisted across CaN rotations. Clear via the resume
-            instance endpoint. Composes with `definitionSuspension` — both must
+            instance endpoint. Composes with `definitionSuspension` - both must
             be null for the instance to dispatch tokens.
         definitionSuspension:
           $ref: '#/components/schemas/SuspensionEntry'
@@ -3903,7 +3975,7 @@ components:
     BpmnIncidentRecord:
       type: object
       description: |
-        A persisted incident — the cross-instance audit row that backs the
+        A persisted incident - the cross-instance audit row that backs the
         "Incidents" view. The same incident is also available in
         `BpmnInstanceState.incidents` while it is still open in the engine; the
         persisted row additionally carries `raisedAt` / `resolvedAt` /
@@ -3947,9 +4019,15 @@ components:
         executionKey:
           type: string
           description: Execution key of the activity that failed.
+        parentScopeID:
+          type: string
+          description: ID of the scope containing `scopeID`, empty for the root scope. Scope IDs are opaque, so this is how a client walks a failure back up the process tree.
+        miIndex:
+          type: integer
+          description: Zero-based multi-instance body index when the failure happened inside one iteration of a multi-instance activity. Absent otherwise.
         errorType:
           type: string
-          description: Category of the error — same enum as `BpmnIncident.errorType`.
+          description: Category of the error - same enum as `BpmnIncident.errorType`.
           enum:
             - BpmnError
             - EscalationError
@@ -3960,6 +4038,11 @@ components:
             - TimerResolution
             - LinkNotFound
             - MigrationError
+            - SubscriptionError
+            - RotationLimitError
+            - SnapshotSizeExceeded
+            - CallActivityCanceled
+            - ExternalRowRefreshError
             - Unknown
         errorCode:
           type: string
@@ -4046,8 +4129,8 @@ components:
           type: string
           description: |
             Kind of operation:
-              * `START_BEFORE_NODE` — activate `nodeID` in the given scope, optionally seeding `variables` first.
-              * `CANCEL_TOKEN` — cancel the active token at `nodeID` in the given scope.
+              * `START_BEFORE_NODE` - activate `nodeID` in the given scope, optionally seeding `variables` first.
+              * `CANCEL_TOKEN` - cancel the active token at `nodeID` in the given scope.
           enum:
             - START_BEFORE_NODE
             - CANCEL_TOKEN
@@ -4241,10 +4324,10 @@ components:
                 type: string
                 description: |
                   Outcome for this item:
-                    * `completed` — the job was completed successfully.
-                    * `failed` — the job exhausted its retries and surfaced as an incident.
-                    * `requeued` — a retry budget remained, the job is back in PENDING.
-                    * `error` — the per-item operation itself failed; the job's state is unchanged.
+                    * `completed` - the job was completed successfully.
+                    * `failed` - the job exhausted its retries and surfaced as an incident.
+                    * `requeued` - a retry budget remained, the job is back in PENDING.
+                    * `error` - the per-item operation itself failed; the job's state is unchanged.
                 enum:
                   - completed
                   - failed
@@ -4282,7 +4365,7 @@ components:
           description: ID of the BPMN node that emitted the task.
         taskType:
           type: string
-          description: BPMN element type — typically `UserTask` or `ManualTask`.
+          description: BPMN element type - typically `UserTask` or `ManualTask`.
         assignee:
           type: string
           description: User the task is currently assigned to. Empty when the task is in a candidate pool but not yet claimed.
@@ -4359,7 +4442,7 @@ components:
       type: object
       description: |
         Reassign a CREATED user task. All fields are optional but at least one
-        must be present. Fields are REPLACED atomically — pass the full set of
+        must be present. Fields are REPLACED atomically - pass the full set of
         candidateUsers / candidateGroups you want stored, not a delta.
       properties:
         assignee:
@@ -4391,7 +4474,7 @@ components:
       description: |
         Selects which subscription(s) receive a published message.
 
-        The provided value — primitive (string, number, boolean) or object —
+        The provided value - primitive (string, number, boolean) or object -
         is matched against the subscription's resolved correlation value.
         Matching is type-sensitive (the number `123` does not match the
         string `"123"`); for objects, the publisher's keys must be a
@@ -4423,6 +4506,13 @@ components:
         versionCount:
           type: integer
           description: Number of deployed versions of this process.
+        suspendedVersionCount:
+          type: integer
+          description: |
+            How many versions of this process are paused. Zero means the process
+            starts and dispatches normally; anything higher means at least one
+            version rejects new instances. Filter the list with `suspended=true`
+            to see only these.
         runningCount:
           type: integer
           description: Instances with status RUNNING across all versions.

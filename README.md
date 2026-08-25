@@ -1,6 +1,6 @@
 # QuantumBPM Python SDK
 
-Official Python SDK for the [QuantumBPM](https://quantumbpm.com) platform — DMN evaluation, BPMN process orchestration, and external job workers.
+Official Python SDK for the [QuantumBPM](https://quantumbpm.com) platform - DMN evaluation, BPMN process orchestration, and external job workers.
 
 ## Installation
 
@@ -18,7 +18,7 @@ Python 3.10+. Async-first; built on `asyncio`.
 | `quantumbpm.auth`         | `TokenProvider`, `ZitadelTokenProvider`, `StaticTokenProvider`                |
 | `quantumbpm.dmn`          | DMN evaluation: stored definitions, ad-hoc XML, batch                         |
 | `quantumbpm.bpmn`         | BPMN resources, instances, messaging, user tasks, processes                   |
-| `quantumbpm.workers`      | External job worker runtime — long-poll, lock heartbeat, dispatch             |
+| `quantumbpm.workers`      | External job worker runtime - long-poll, lock heartbeat, dispatch             |
 | `quantumbpm.variables`    | `Vars` wrapper with typed accessors and FEEL-context conversion               |
 | `quantumbpm.api[_client]` | OpenAPI-generated client. Reachable via `client.raw`, never hand-edited       |
 
@@ -49,7 +49,7 @@ async def main():
 asyncio.run(main())
 ```
 
-The async context manager (`async with`) acquires a fresh bearer token on entry. Skipping the context manager and calling methods directly works too — the SDK refreshes tokens on demand.
+The async context manager (`async with`) acquires a fresh bearer token on entry. Skipping the context manager and calling methods directly works too - the SDK refreshes tokens on demand.
 
 ## Authentication
 
@@ -273,7 +273,7 @@ Any other exception is reported as `WORKER_ERROR`, which the server treats as a 
 
 ### Typed handlers (Pydantic)
 
-Type-annotate the `Job` parameter with a Pydantic model — the runtime validates the job's input variables before invoking the handler. The decoded value lands in `job.typed`.
+Type-annotate the `Job` parameter with a Pydantic model - the runtime validates the job's input variables before invoking the handler. The decoded value lands in `job.typed`.
 
 ```python
 from pydantic import BaseModel
@@ -315,7 +315,7 @@ class Loan(BaseModel):
 loan = v.as_type(Loan)
 ```
 
-`Vars.get(name, type_)` and `Vars.as_type(type_)` accept Pydantic models, dataclasses, and primitives — Pydantic's `TypeAdapter` does the validation.
+`Vars.get(name, type_)` and `Vars.as_type(type_)` accept Pydantic models, dataclasses, and primitives - Pydantic's `TypeAdapter` does the validation.
 
 ## Escape hatch
 
@@ -330,4 +330,4 @@ result = api.migrate_bpmn_instance(client.project_id, workflow_id, body)
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details.

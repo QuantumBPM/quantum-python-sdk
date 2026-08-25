@@ -1,8 +1,8 @@
 """Optional OpenTelemetry integration for the worker runtime.
 
 OpenTelemetry is an optional dependency (install ``quantumbpm[tracing]`` or add
-``opentelemetry-api`` yourself). When it's absent — or present but no SDK is
-configured — every helper here is a no-op, so workers that don't opt into
+``opentelemetry-api`` yourself). When it's absent - or present but no SDK is
+configured - every helper here is a no-op, so workers that don't opt into
 tracing pay nothing.
 
 When enabled, ``job_span`` continues the originating process instance's trace

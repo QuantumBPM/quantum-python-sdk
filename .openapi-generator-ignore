@@ -31,5 +31,5 @@ quantumbpm/rest.py
 quantumbpm/models/feel_value.py
 README.md
 
-# Auto-generated CI workflow — we maintain ci.yml + release.yml manually
+# Auto-generated CI workflow - we maintain ci.yml + release.yml manually
 .github/workflows/python.yml

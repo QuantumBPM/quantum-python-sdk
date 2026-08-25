@@ -1,5 +1,5 @@
 """
-QuantumBPM Python SDK — DMN evaluation, BPMN orchestration, and external
+QuantumBPM Python SDK - DMN evaluation, BPMN orchestration, and external
 job workers.
 
 The public surface is curated: import from the top-level package or the
