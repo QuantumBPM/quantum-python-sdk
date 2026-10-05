@@ -40,6 +40,7 @@ docs/DefaultApi.md
 docs/Definition.md
 docs/ElementMapping.md
 docs/Error.md
+docs/ErrorMode.md
 docs/EvaluateDesignRequest.md
 docs/EvaluateStoredRequest.md
 docs/EvaluationResult.md
@@ -50,6 +51,7 @@ docs/ExternalJobBatchResponseResultsInner.md
 docs/ExternalJobQueueDepthItem.md
 docs/ExternalJobQueueDepthResponse.md
 docs/FeelValue.md
+docs/FeelWarning.md
 docs/GetBpmnInstanceVariables200Response.md
 docs/GetVersion200Response.md
 docs/HeartbeatBpmnExternalJobRequest.md
@@ -130,6 +132,7 @@ quantumbpm/models/decision_summary.py
 quantumbpm/models/definition.py
 quantumbpm/models/element_mapping.py
 quantumbpm/models/error.py
+quantumbpm/models/error_mode.py
 quantumbpm/models/evaluate_design_request.py
 quantumbpm/models/evaluate_stored_request.py
 quantumbpm/models/evaluation_result.py
@@ -139,6 +142,7 @@ quantumbpm/models/external_job_batch_response.py
 quantumbpm/models/external_job_batch_response_results_inner.py
 quantumbpm/models/external_job_queue_depth_item.py
 quantumbpm/models/external_job_queue_depth_response.py
+quantumbpm/models/feel_warning.py
 quantumbpm/models/get_bpmn_instance_variables200_response.py
 quantumbpm/models/get_version200_response.py
 quantumbpm/models/heartbeat_bpmn_external_job_request.py
@@ -217,6 +221,7 @@ test/test_default_api.py
 test/test_definition.py
 test/test_element_mapping.py
 test/test_error.py
+test/test_error_mode.py
 test/test_evaluate_design_request.py
 test/test_evaluate_stored_request.py
 test/test_evaluation_result.py
@@ -227,6 +232,7 @@ test/test_external_job_batch_response_results_inner.py
 test/test_external_job_queue_depth_item.py
 test/test_external_job_queue_depth_response.py
 test/test_feel_value.py
+test/test_feel_warning.py
 test/test_get_bpmn_instance_variables200_response.py
 test/test_get_version200_response.py
 test/test_heartbeat_bpmn_external_job_request.py

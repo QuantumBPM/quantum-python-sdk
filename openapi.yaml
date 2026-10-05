@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: QuantumBPM API (Public)
-  version: 1.5.0
+  version: 1.7.0
   description: Public API for the QuantumBPM application. SDKs are generated from this spec.
 paths:
   /version:
@@ -65,6 +65,8 @@ paths:
                   items:
                     type: string
                   description: Names of decisions or decision services to evaluate. If empty, all decisions in the document are evaluated.
+                errorMode:
+                  $ref: '#/components/schemas/ErrorMode'
       responses:
         '200':
           description: OK
@@ -620,10 +622,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     put:
-      summary: Update a DMN definition's metadata
+      summary: Update a DMN definition version
       operationId: UpdateDefinition
       x-required-role: editor
-      description: Modifies metadata (name) of a stored definition. The DMN XML and version are immutable; post a new definition with the same XML `id` to publish a new version.
+      description: Replaces the name and XML of a stored definition version in place. Send `version` 0 to store the change as the next version of the same definition instead.
       parameters:
         - name: projectID
           in: path
@@ -1860,6 +1862,13 @@ paths:
         instructions (start before a node, cancel a token in a scope) to a
         running instance. Useful for unblocking instances that have ended up
         in unintended states. Restricted to project administrators.
+
+        The instructions are validated against the live instance before
+        anything is applied, and the whole batch is refused with a 400 if any
+        of them cannot be: an unknown scope, a `START_BEFORE_NODE` naming a
+        node the instance's process version does not contain, or a
+        `CANCEL_TOKEN` with no live token, scope or incident at its target.
+        A batch is applied whole or not at all.
       tags:
         - bpmn
       parameters:
@@ -1883,6 +1892,10 @@ paths:
       responses:
         '200':
           description: OK
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
   /projects/{projectID}/bpmn/instances/{workflowID}/adhoc/{adHocNodeID}/trigger:
     post:
       summary: Activate an activity inside a running ad-hoc subprocess
@@ -3083,6 +3096,35 @@ components:
       description: FEEL context (a name → value map). The DMN equivalent of an object.
       additionalProperties:
         $ref: '#/components/schemas/FeelValue'
+    ErrorMode:
+      type: string
+      description: |
+        How the evaluation reacts to FEEL errors and failing decisions (DMN 1.5, section 7.3.8):
+          * `strict` - the evaluation stops at the first error and the call reports it, with the
+            line and column where the failing part of the expression starts.
+          * `lenient` - a FEEL runtime error such as `string length(null)` makes only that part of
+            the expression `null` and is listed in the `warnings` of the decision's result. A
+            decision that still fails evaluates to `null` and carries its message in the `error`
+            field of its own result, while the decisions around it keep evaluating.
+        Omit it to use the mode the server is configured with.
+      enum:
+        - strict
+        - lenient
+    FeelWarning:
+      type: object
+      description: A FEEL runtime error that lenient mode replaced with `null`.
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: 'What failed, for example `string length: argument cannot be null`.'
+        line:
+          type: integer
+          description: Line in the expression where the failing part starts. Absent when unknown.
+        column:
+          type: integer
+          description: Column in the expression where the failing part starts. Absent when unknown.
     HitRule:
       type: object
       description: A single rule that matched during decision-table evaluation.
@@ -3106,6 +3148,11 @@ components:
           type: string
           description: Error message if the decision failed to evaluate. Null on success.
           nullable: true
+        warnings:
+          type: array
+          description: FEEL runtime errors that lenient mode replaced with `null` while this decision was evaluated. Absent when there were none.
+          items:
+            $ref: '#/components/schemas/FeelWarning'
         type:
           type: string
           description: |
@@ -3173,6 +3220,8 @@ components:
           maxItems: 500
           items:
             $ref: '#/components/schemas/FeelContext'
+        errorMode:
+          $ref: '#/components/schemas/ErrorMode'
     BatchEvaluationResponse:
       type: object
       description: Per-row results from a batch evaluation.
@@ -3324,6 +3373,8 @@ components:
           description: Specific definition version to evaluate. Defaults to the latest version.
         context:
           $ref: '#/components/schemas/FeelContext'
+        errorMode:
+          $ref: '#/components/schemas/ErrorMode'
         decisionServices:
           type: array
           items:
@@ -3340,14 +3391,14 @@ components:
           description: Optional caller-supplied correlation key persisted with the resulting execution row for cross-system tracing.
     UpdateDefinitionRequest:
       type: object
-      description: Payload for updating metadata on an existing definition version.
+      description: Payload for updating an existing definition version.
       properties:
         xml:
           type: string
-          description: Replacement XML. The `definitionsID` and `version` from the original are preserved.
+          description: Replacement XML. The `definitionsID` is read from its `<definitions id>`, falling back to the original.
         version:
           type: integer
-          description: Optional explicit version override. Generally not used during update.
+          description: Omit to overwrite the version in place. 0 stores the change as the next version instead.
         name:
           type: string
           description: New display name.
@@ -3749,6 +3800,15 @@ components:
         businessId:
           type: string
           description: Caller-supplied correlation key set when the instance was started. Inherited unchanged on child instances spawned via CallActivity.
+        processId:
+          type: string
+          description: BPMN process ID of the definition this instance was started from. Together with `processVersion` it addresses the version, which `definitionID` alone does not.
+        processName:
+          type: string
+          description: Human-readable name of that process definition.
+        processVersion:
+          type: integer
+          description: Version of the process definition this instance was started from.
     BpmnInstancePaginatedResponse:
       type: object
       description: Page of BPMN process instances.
@@ -4010,6 +4070,9 @@ components:
         processName:
           type: string
           description: Human-readable name of the parent process definition.
+        processVersion:
+          type: integer
+          description: Version of that process definition. With `processID` it addresses the exact version the incident was raised on.
         nodeID:
           type: string
           description: ID of the BPMN node where the error occurred.
@@ -4139,7 +4202,7 @@ components:
           description: BPMN flow node id the instruction targets.
         scopeID:
           type: string
-          description: Scope to apply the instruction in. Empty applies to the root process scope.
+          description: Scope to apply the instruction in, as reported by the instance's active scopes. Empty applies to the root process scope, for both instruction types. A scope that is not live on the instance is rejected with a 400.
         variables:
           type: object
           description: Variables to inject into the scope for `START_BEFORE_NODE`.
@@ -4618,6 +4681,12 @@ components:
             $ref: '#/components/schemas/Error'
     Unauthorized:
       description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not Found
       content:
         application/json:
           schema:

@@ -23,14 +23,14 @@ from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class CreateDefinitionRequest(BaseModel):
+class FeelWarning(BaseModel):
     """
-    Payload for creating a new DMN definition version.
+    A FEEL runtime error that lenient mode replaced with `null`.
     """ # noqa: E501
-    name: StrictStr = Field(description="Display name.")
-    xml: StrictStr = Field(description="DMN XML body.")
-    version: Optional[StrictInt] = Field(default=None, description="Optional explicit version number. If omitted, the server assigns one.")
-    __properties: ClassVar[List[str]] = ["name", "xml", "version"]
+    message: StrictStr = Field(description="What failed, for example `string length: argument cannot be null`.")
+    line: Optional[StrictInt] = Field(default=None, description="Line in the expression where the failing part starts. Absent when unknown.")
+    column: Optional[StrictInt] = Field(default=None, description="Column in the expression where the failing part starts. Absent when unknown.")
+    __properties: ClassVar[List[str]] = ["message", "line", "column"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -50,7 +50,7 @@ class CreateDefinitionRequest(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of CreateDefinitionRequest from a JSON string"""
+        """Create an instance of FeelWarning from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -75,7 +75,7 @@ class CreateDefinitionRequest(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of CreateDefinitionRequest from a dict"""
+        """Create an instance of FeelWarning from a dict"""
         if obj is None:
             return None
 
@@ -83,9 +83,9 @@ class CreateDefinitionRequest(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "name": obj.get("name"),
-            "xml": obj.get("xml"),
-            "version": obj.get("version")
+            "message": obj.get("message"),
+            "line": obj.get("line"),
+            "column": obj.get("column")
         })
         return _obj
 
