@@ -9,7 +9,7 @@ from quantumbpm.api_client import ApiClient
 from quantumbpm.auth import TokenProvider, build_api_client
 from quantumbpm.bpmn import BpmnClient
 from quantumbpm.dmn import DmnClient
-from quantumbpm.workers import Worker
+from quantumbpm.workers import DEFAULT_SHUTDOWN_TIMEOUT_S, Worker
 
 
 class QuantumBPM:
@@ -69,13 +69,23 @@ class QuantumBPM:
         """Acquire a fresh bearer token from the configured TokenProvider."""
         await self._refresh()
 
-    def new_worker(self, *, client_id: str | None = None) -> Worker:
+    def new_worker(
+        self,
+        *,
+        client_id: str | None = None,
+        shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT_S,
+    ) -> Worker:
         """
         Construct an external job worker bound to this client's project.
         Register handlers via ``@worker.handler('task-type')`` and call
         ``await worker.run(stop_event)``.
         """
-        return Worker(self._api, self._project_id, client_id=client_id)
+        return Worker(
+            self._api,
+            self._project_id,
+            client_id=client_id,
+            shutdown_timeout=shutdown_timeout,
+        )
 
     async def __aenter__(self) -> "QuantumBPM":
         await self.authenticate()

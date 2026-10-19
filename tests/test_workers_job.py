@@ -43,7 +43,7 @@ def test_job_exposes_business_id_when_present():
     w._heartbeat = noop  # type: ignore[method-assign]
     w._throw_error = noop  # type: ignore[method-assign]
 
-    asyncio.run(w._dispatch(r, raw, asyncio.Event()))
+    asyncio.run(w._dispatch(r, raw))
 
     assert len(received) == 1
     assert received[0].business_id == "ORDER-42"
@@ -70,7 +70,7 @@ def test_job_business_id_is_none_when_absent():
     w._heartbeat = noop  # type: ignore[method-assign]
     w._throw_error = noop  # type: ignore[method-assign]
 
-    asyncio.run(w._dispatch(r, raw, asyncio.Event()))
+    asyncio.run(w._dispatch(r, raw))
 
     assert len(received) == 1
     assert received[0].business_id is None

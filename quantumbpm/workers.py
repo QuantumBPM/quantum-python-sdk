@@ -25,6 +25,7 @@ from pydantic import BaseModel, TypeAdapter
 from quantumbpm.api.bpmn_api import BpmnApi
 from quantumbpm.api.default_api import DefaultApi
 from quantumbpm.api_client import ApiClient
+from quantumbpm.exceptions import ApiException
 from quantumbpm.models.complete_bpmn_external_job_request import CompleteBpmnExternalJobRequest
 from quantumbpm.models.external_job import ExternalJob
 from quantumbpm.models.heartbeat_bpmn_external_job_request import HeartbeatBpmnExternalJobRequest
@@ -42,7 +43,9 @@ DEFAULT_MAX_JOBS = 1
 DEFAULT_POLL_TIMEOUT = "30s"
 DEFAULT_LOCK_DURATION = "30s"
 DEFAULT_MAX_ERROR_MESSAGE_BYTES = 2048
+DEFAULT_SHUTDOWN_TIMEOUT_S = 20.0
 POLL_ERROR_BACKOFF_S = 2.0
+MIN_HEARTBEAT_INTERVAL_S = 1.0
 
 TVars = TypeVar("TVars")
 
@@ -96,6 +99,8 @@ class Worker:
     Long-poll runtime owning a set of handlers, one per task type. Use
     :meth:`handler` (decorator) or :meth:`handle` (direct registration) to
     register, then call :meth:`run` with an asyncio Event to start polling.
+    ``shutdown_timeout`` (seconds) bounds how long :meth:`run` waits for
+    running handlers once the event is set.
     """
 
     def __init__(
@@ -105,6 +110,7 @@ class Worker:
         *,
         client_id: str | None = None,
         max_error_message_bytes: int = DEFAULT_MAX_ERROR_MESSAGE_BYTES,
+        shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT_S,
     ) -> None:
         self._default = DefaultApi(api_client)
         self._bpmn = BpmnApi(api_client)
@@ -112,6 +118,9 @@ class Worker:
         self._client_id = client_id or f"worker-{socket.gethostname()}-{os.getpid()}"
         self._max_error_message_bytes = (
             max_error_message_bytes if max_error_message_bytes > 0 else DEFAULT_MAX_ERROR_MESSAGE_BYTES
+        )
+        self._shutdown_timeout = (
+            shutdown_timeout if shutdown_timeout >= 0 else DEFAULT_SHUTDOWN_TIMEOUT_S
         )
         self._registrations: dict[str, _Registration] = {}
 
@@ -169,66 +178,76 @@ class Worker:
 
     async def run(self, stop: asyncio.Event | None = None) -> None:
         """
-        Start the polling loops. Resolves when ``stop`` is set, after
-        in-flight handlers have settled.
+        Start the polling loops. Once ``stop`` is set, no new poll starts and
+        running handlers get up to the shutdown timeout to finish and report.
+        Handlers still running after it are cancelled and not reported, so
+        their locks run out on the server. Then ``run`` returns.
         """
         if not self._registrations:
             raise RuntimeError("workers: no handlers registered")
         stop = stop or asyncio.Event()
-        await asyncio.gather(*(self._run_task_type(r, stop) for r in self._registrations.values()))
+        loops = asyncio.gather(
+            *(self._run_task_type(r, stop) for r in self._registrations.values())
+        )
+        stopped: asyncio.Future[Any] = asyncio.create_task(stop.wait())
+        try:
+            await asyncio.wait([loops, stopped], return_when=asyncio.FIRST_COMPLETED)
+            await asyncio.wait_for(loops, timeout=self._shutdown_timeout)
+        except asyncio.TimeoutError:
+            log.warning(
+                "workers: shutdown timeout of %.1fs passed, unfinished jobs cancelled. "
+                "Their locks run out on the server.",
+                self._shutdown_timeout,
+            )
+        finally:
+            stopped.cancel()
+            loops.cancel()
 
     async def _run_task_type(self, r: _Registration, stop: asyncio.Event) -> None:
-        sem = asyncio.Semaphore(r.max_jobs)
         inflight: set[asyncio.Task[None]] = set()
+        stopped = asyncio.create_task(stop.wait())
 
-        while not stop.is_set():
-            await sem.acquire()
-            try:
-                jobs = await self._poll(r)
-            except Exception as exc:
-                sem.release()
-                if stop.is_set():
-                    break
-                log.error("poll %s: %s", r.task_type, exc)
-                try:
-                    await asyncio.wait_for(stop.wait(), timeout=POLL_ERROR_BACKOFF_S)
-                    break
-                except asyncio.TimeoutError:
+        try:
+            while not stop.is_set():
+                free = r.max_jobs - len(inflight)
+                if free <= 0:
+                    # Wakes when a handler finishes or stop is set.
+                    await asyncio.wait([stopped, *inflight], return_when=asyncio.FIRST_COMPLETED)
                     continue
 
-            if not jobs:
-                sem.release()
-                continue
+                # A poll that is running when stop is set cannot be cancelled.
+                # The jobs it returns still run and report.
+                try:
+                    jobs = await self._poll(r, free)
+                except Exception as exc:
+                    if stop.is_set():
+                        break
+                    log.error("poll %s: %s", r.task_type, exc)
+                    try:
+                        await asyncio.wait_for(stop.wait(), timeout=POLL_ERROR_BACKOFF_S)
+                        break
+                    except asyncio.TimeoutError:
+                        continue
 
-            # First job uses the slot already acquired; remaining jobs each
-            # acquire their own.
-            for i, job in enumerate(jobs):
-                if i > 0:
-                    await sem.acquire()
-                task = asyncio.create_task(self._dispatch_with_release(r, job, sem, stop))
-                inflight.add(task)
-                task.add_done_callback(inflight.discard)
+                for job in jobs:
+                    task = asyncio.create_task(self._dispatch(r, job))
+                    inflight.add(task)
+                    task.add_done_callback(inflight.discard)
 
-        if inflight:
+            await asyncio.gather(*inflight, return_exceptions=True)
+        finally:
+            # Handlers remain here only when this loop is cancelled, by the
+            # shutdown timeout or by cancelling run.
+            stopped.cancel()
+            for task in list(inflight):
+                task.cancel()
             await asyncio.gather(*inflight, return_exceptions=True)
 
-    async def _dispatch_with_release(
-        self,
-        r: _Registration,
-        job: ExternalJob,
-        sem: asyncio.Semaphore,
-        stop: asyncio.Event,
-    ) -> None:
-        try:
-            await self._dispatch(r, job, stop)
-        finally:
-            sem.release()
-
-    async def _poll(self, r: _Registration) -> list[ExternalJob]:
+    async def _poll(self, r: _Registration, max_jobs: int) -> list[ExternalJob]:
         body = PollBpmnJobRequest(
             clientID=self._client_id,
             taskType=r.task_type,
-            maxJobs=r.max_jobs,
+            maxJobs=max_jobs,
             timeout=r.poll_timeout,
             lockDuration=r.lock_duration,
         )
@@ -237,18 +256,13 @@ class Worker:
         )
         return result or []
 
-    async def _dispatch(self, r: _Registration, raw: ExternalJob, stop: asyncio.Event) -> None:
-        heartbeat_stop = asyncio.Event()
-        hb_task = asyncio.create_task(self._heartbeat(r, raw, heartbeat_stop))
-
+    async def _dispatch(self, r: _Registration, raw: ExternalJob) -> None:
         vars = Vars.from_wire_map(raw.variables)
         typed: Any = vars.to_dict()
         if r.typed_model is not None:
             try:
                 typed = _coerce(vars.to_dict(), r.typed_model)
             except Exception as exc:  # decode failure → throw error
-                heartbeat_stop.set()
-                await hb_task
                 log.error("decode vars %s: %s", r.task_type, exc)
                 await self._throw_error(
                     raw,
@@ -269,22 +283,22 @@ class Worker:
             business_id=raw.business_id,
         )
 
+        # A lost lock or the shutdown timeout cancels this task. Nothing below
+        # catches CancelledError, so a cancelled job is never reported.
+        owner = cast("asyncio.Task[Any]", asyncio.current_task())
+        hb_task = asyncio.create_task(self._heartbeat(r, raw, owner))
         with job_span(raw) as span:
             try:
-                result = await r.handler(job)
-                heartbeat_stop.set()
-                await hb_task
-                await self._complete(raw, result if isinstance(result, Vars) else Vars())
+                try:
+                    result = await r.handler(job)
+                finally:
+                    hb_task.cancel()
             except BpmnError as be:
-                heartbeat_stop.set()
-                await hb_task
                 mark_bpmn_error(span, be.code)
                 # Business outcome: route to the boundary immediately
                 # (retryable=False), bypassing the retry budget.
                 await self._throw_error(raw, be.code, be.variables or Vars(), retryable=False)
             except Exception as exc:
-                heartbeat_stop.set()
-                await hb_task
                 log.exception("handler %s", r.task_type)
                 mark_worker_error(span, exc)
                 message = self._clamp_worker_error_message(r.task_type, str(exc))
@@ -296,17 +310,20 @@ class Worker:
                     Vars().set("error", message),
                     retryable=True,
                 )
+            else:
+                await self._complete(raw, result if isinstance(result, Vars) else Vars())
 
     async def _heartbeat(
-        self, r: _Registration, raw: ExternalJob, stop: asyncio.Event
+        self, r: _Registration, raw: ExternalJob, owner: asyncio.Task[Any]
     ) -> None:
-        interval_s = max(1.0, _parse_duration_s(r.lock_duration) / 2)
-        while not stop.is_set():
-            try:
-                await asyncio.wait_for(stop.wait(), timeout=interval_s)
-                return
-            except asyncio.TimeoutError:
-                pass
+        """
+        Renew the job lock until cancelled. When the server answers that this
+        worker no longer holds the job, cancel ``owner`` (the dispatch task)
+        and stop.
+        """
+        interval_s = max(MIN_HEARTBEAT_INTERVAL_S, _parse_duration_s(r.lock_duration) / 2)
+        while True:
+            await asyncio.sleep(interval_s)
             try:
                 await asyncio.to_thread(
                     self._default.heartbeat_bpmn_external_job,
@@ -318,6 +335,16 @@ class Worker:
                     ),
                 )
             except Exception as exc:
+                status = _http_status(exc)
+                if status in (404, 409):
+                    log.warning(
+                        "heartbeat %s: lock lost (status %d), "
+                        "handler cancelled and result discarded",
+                        raw.execution_key,
+                        status,
+                    )
+                    owner.cancel()
+                    return
                 log.warning("heartbeat %s: %s", raw.execution_key, exc)
 
     async def _complete(self, raw: ExternalJob, vars: Vars) -> None:
@@ -334,7 +361,7 @@ class Worker:
                 body,
             )
         except Exception as exc:
-            log.error("complete %s: %s", raw.execution_key, exc)
+            _log_report_failure("complete", raw, exc)
 
     async def _throw_error(
         self, raw: ExternalJob, code: str, vars: Vars, retryable: bool
@@ -353,7 +380,7 @@ class Worker:
                 body,
             )
         except Exception as exc:
-            log.error("throw_error %s: %s", raw.execution_key, exc)
+            _log_report_failure("throw_error", raw, exc)
 
     def _clamp_worker_error_message(self, task_type: str, msg: str) -> str:
         """
@@ -377,6 +404,19 @@ class Worker:
             limit,
         )
         return prefix + marker
+
+
+def _http_status(exc: Exception) -> int | None:
+    """HTTP status of a failed API call, ``None`` for any other error."""
+    return exc.status if isinstance(exc, ApiException) else None
+
+
+def _log_report_failure(op: str, raw: ExternalJob, exc: Exception) -> None:
+    """A 409 means this worker no longer holds the lock and the server dropped the result."""
+    if _http_status(exc) == 409:
+        log.warning("%s %s: lock lost, result discarded", op, raw.execution_key)
+    else:
+        log.error("%s %s: %s", op, raw.execution_key, exc)
 
 
 def _extract_typed_model(fn: Handler[Any]) -> Any | None:

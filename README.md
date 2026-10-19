@@ -238,7 +238,7 @@ async def main():
 asyncio.run(main())
 ```
 
-`run(stop)` resolves when the `asyncio.Event` is set, after in-flight handlers settle.
+`run(stop)` resolves once the `asyncio.Event` is set and running handlers have finished, or the shutdown timeout has passed. See [Heartbeats, lost locks, and shutdown](#heartbeats-lost-locks-and-shutdown).
 
 ### Concurrency, polling, and locks
 
@@ -254,6 +254,45 @@ async def handle(job: Job) -> Vars:
 ```
 
 Concurrency is per task type. Different task types run independently. The runtime auto-renews the lock at half the lock-duration interval while the handler runs.
+
+### Heartbeats, lost locks, and shutdown
+
+A polled job is locked to this worker. Each heartbeat extends the lock by `lock_duration`, and the server caps one attempt at 30 minutes by default (`BPMN_JOB_MAX_HOLD`). When the lock runs out, the server charges the job a retry and offers it again, or raises an incident when no retries are left. So abandoning a running job always costs a retry.
+
+When a heartbeat answers that this worker no longer holds the job (HTTP 409 or 404), the runtime cancels the handler with `asyncio.CancelledError` and reports nothing. A complete or error report rejected with 409 is discarded by the server and logged as a warning. Let `CancelledError` propagate out of handlers.
+
+Setting the `stop` event shuts the worker down gracefully:
+
+- No new long-poll starts. A long-poll already in flight cannot be cancelled. Jobs it returns before the shutdown timeout still run.
+- Running handlers keep heartbeating, and their results are reported.
+- Handlers still running `shutdown_timeout` seconds (default `20.0`) after `stop` is set are cancelled and not reported. Their locks run out on the server. Then `run` returns.
+
+Wire `stop` to SIGTERM so a stop signal drains the worker:
+
+```python
+import asyncio
+import signal
+from quantumbpm import QuantumBPM, Vars
+from quantumbpm.workers import Job
+
+async def main():
+    async with QuantumBPM(...) as client:
+        worker = client.new_worker(client_id="billing-svc", shutdown_timeout=20.0)
+
+        @worker.handler("send-email")
+        async def handle(job: Job) -> Vars:
+            ...
+
+        stop = asyncio.Event()
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGTERM, stop.set)
+        loop.add_signal_handler(signal.SIGINT, stop.set)
+        await worker.run(stop)
+
+asyncio.run(main())
+```
+
+On Kubernetes, set `terminationGracePeriodSeconds` above the shutdown timeout, or the pod is killed mid-drain. A long-poll in flight at stop can also hold process exit for up to `poll_timeout`, so leave room for that too.
 
 ### Throwing typed BPMN errors
 
