@@ -42,7 +42,8 @@ class ZitadelTokenProvider:
     """
     Authenticates against Zitadel using a service-account JSON Key file via
     the JWT Profile (``urn:ietf:params:oauth:grant-type:jwt-bearer``) grant.
-    Tokens are cached in-memory until shortly before expiry.
+    The token is cached in memory and replaced once it is within 60 seconds
+    of expiry.
     """
 
     def __init__(
@@ -120,11 +121,10 @@ def build_api_client(
     verify_ssl: bool = True,
 ) -> tuple[ApiClient, Callable[[], Awaitable[None]]]:
     """
-    Build a generated ApiClient that injects the token from ``provider`` into
-    each request.
-
-    Returns the ApiClient plus a refresh coroutine the caller can invoke to
-    rotate the bearer token (e.g. before a long-running worker starts).
+    Build a generated ApiClient plus a refresh coroutine that sets its
+    Authorization header to a token from ``provider``. The SDK clients and
+    workers await the refresh before every API call, so the provider decides
+    when a new token is fetched.
     """
     config = Configuration(host=base_url)
     if ssl_ca_cert:

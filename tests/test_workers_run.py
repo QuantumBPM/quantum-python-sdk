@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -84,9 +85,38 @@ def test_heartbeat_409_cancels_handler_and_skips_complete(caplog):
     assert heartbeat.call_count == 1
     w._default.complete_bpmn_external_job.assert_not_called()
     w._bpmn.throw_bpmn_external_job_error.assert_not_called()
-    lost = [r for r in caplog.records if "lock lost" in r.getMessage()]
+    lost = [r for r in caplog.records if "no longer holds the job, handler cancelled" in r.getMessage()]
     assert len(lost) == 1
     assert lost[0].levelno == logging.WARNING
+
+
+def test_heartbeat_follows_the_lock_the_server_granted():
+    w = make_worker()
+    raw = make_raw()
+    # Requested 10s, granted 200ms: heartbeats come every 100ms, not every 5s.
+    raw.lock_expires_at = datetime.now(timezone.utc) + timedelta(milliseconds=200)
+    serve(w, [raw])
+    heartbeat = w._default.heartbeat_bpmn_external_job
+
+    async def scenario():
+        release = asyncio.Event()
+
+        async def handler(job: Job):
+            await release.wait()
+            return Vars()
+
+        w.handle("payment", handler, lock_duration="10s")
+        stop = asyncio.Event()
+        run = asyncio.create_task(w.run(stop))
+        await until(lambda: heartbeat.call_count >= 2)
+        stop.set()
+        release.set()
+        await asyncio.wait_for(run, 2)
+
+    asyncio.run(scenario())
+
+    assert heartbeat.call_args.args[2].lock_duration == "10s"
+    w._default.complete_bpmn_external_job.assert_called_once()
 
 
 def test_stop_lets_running_handler_heartbeat_and_complete():
@@ -189,11 +219,13 @@ def test_poll_requests_only_free_slots():
 
 def test_complete_409_logs_lock_lost(caplog):
     w = make_worker()
-    w._default.complete_bpmn_external_job.side_effect = ApiException(status=409, reason="Conflict")
+    w._default.complete_bpmn_external_job.side_effect = ApiException(
+        status=409, reason="Conflict", body='{"code":"CONFLICT","message":"the job was canceled"}'
+    )
     caplog.set_level(logging.WARNING, logger="quantumbpm.workers")
 
     asyncio.run(w._complete(make_raw(), Vars()))
 
     assert [(r.levelno, r.getMessage()) for r in caplog.records] == [
-        (logging.WARNING, "complete wf-1:node-a:1: lock lost, result discarded")
+        (logging.WARNING, "complete wf-1:node-a:1: result discarded: the job was canceled")
     ]

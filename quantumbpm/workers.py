@@ -17,6 +17,7 @@ import re
 import socket
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable, Generic, TypeVar, cast, get_type_hints
 from uuid import UUID
 
@@ -40,7 +41,9 @@ from quantumbpm.variables import Vars
 log = logging.getLogger("quantumbpm.workers")
 
 DEFAULT_MAX_JOBS = 1
-DEFAULT_POLL_TIMEOUT = "30s"
+DEFAULT_POLL_TIMEOUT = "5s"
+# One poll request waits at most this long on the server, so a stop takes effect within it.
+MAX_POLL_TIMEOUT_S = 5.0
 DEFAULT_LOCK_DURATION = "30s"
 DEFAULT_MAX_ERROR_MESSAGE_BYTES = 2048
 DEFAULT_SHUTDOWN_TIMEOUT_S = 20.0
@@ -92,6 +95,7 @@ class _Registration:
     max_jobs: int
     poll_timeout: str
     lock_duration: str
+    lock_duration_s: float
 
 
 class Worker:
@@ -100,7 +104,8 @@ class Worker:
     :meth:`handler` (decorator) or :meth:`handle` (direct registration) to
     register, then call :meth:`run` with an asyncio Event to start polling.
     ``shutdown_timeout`` (seconds) bounds how long :meth:`run` waits for
-    running handlers once the event is set.
+    running handlers once the event is set. ``refresh`` is awaited before
+    every API call to put a current bearer token on ``api_client``.
     """
 
     def __init__(
@@ -111,10 +116,13 @@ class Worker:
         client_id: str | None = None,
         max_error_message_bytes: int = DEFAULT_MAX_ERROR_MESSAGE_BYTES,
         shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT_S,
+        refresh: Callable[[], Awaitable[None]] | None = None,
     ) -> None:
         self._default = DefaultApi(api_client)
         self._bpmn = BpmnApi(api_client)
+        self._refresh = refresh
         self._project_id = UUID(project_id) if isinstance(project_id, str) else project_id
+        client_id = (client_id or "").strip()
         self._client_id = client_id or f"worker-{socket.gethostname()}-{os.getpid()}"
         self._max_error_message_bytes = (
             max_error_message_bytes if max_error_message_bytes > 0 else DEFAULT_MAX_ERROR_MESSAGE_BYTES
@@ -166,7 +174,19 @@ class Worker:
         poll_timeout: str = DEFAULT_POLL_TIMEOUT,
         lock_duration: str = DEFAULT_LOCK_DURATION,
     ) -> None:
-        """Register ``fn`` as the handler for ``task_type``."""
+        """
+        Register ``fn`` as the handler for ``task_type``. Raises ValueError
+        when ``poll_timeout`` or ``lock_duration`` is not a Go duration.
+        """
+        # The server rejects a duration with surrounding spaces.
+        poll_timeout, lock_duration = poll_timeout.strip(), lock_duration.strip()
+        try:
+            poll_s = _parse_duration_s(poll_timeout)
+            lock_s = _parse_duration_s(lock_duration)
+        except ValueError as exc:
+            raise ValueError(f"workers: handler {task_type!r}: {exc}") from None
+        if poll_s > MAX_POLL_TIMEOUT_S:
+            poll_timeout = f"{MAX_POLL_TIMEOUT_S:g}s"
         self._registrations[task_type] = _Registration(
             task_type=task_type,
             handler=fn,
@@ -174,6 +194,7 @@ class Worker:
             max_jobs=max_jobs,
             poll_timeout=poll_timeout,
             lock_duration=lock_duration,
+            lock_duration_s=lock_s,
         )
 
     async def run(self, stop: asyncio.Event | None = None) -> None:
@@ -216,7 +237,8 @@ class Worker:
                     continue
 
                 # A poll that is running when stop is set cannot be cancelled.
-                # The jobs it returns still run and report.
+                # It returns within MAX_POLL_TIMEOUT_S and the jobs it returns
+                # still run and report.
                 try:
                     jobs = await self._poll(r, free)
                 except Exception as exc:
@@ -243,6 +265,12 @@ class Worker:
                 task.cancel()
             await asyncio.gather(*inflight, return_exceptions=True)
 
+    async def _call(self, fn: Callable[..., Any], *args: Any) -> Any:
+        """Refresh the bearer token, then run the blocking API call in a thread."""
+        if self._refresh is not None:
+            await self._refresh()
+        return await asyncio.to_thread(fn, *args)
+
     async def _poll(self, r: _Registration, max_jobs: int) -> list[ExternalJob]:
         body = PollBpmnJobRequest(
             clientID=self._client_id,
@@ -251,9 +279,7 @@ class Worker:
             timeout=r.poll_timeout,
             lockDuration=r.lock_duration,
         )
-        result = await asyncio.to_thread(
-            self._default.poll_bpmn_external_jobs, self._project_id, body
-        )
+        result = await self._call(self._default.poll_bpmn_external_jobs, self._project_id, body)
         return result or []
 
     async def _dispatch(self, r: _Registration, raw: ExternalJob) -> None:
@@ -286,7 +312,10 @@ class Worker:
         # A lost lock or the shutdown timeout cancels this task. Nothing below
         # catches CancelledError, so a cancelled job is never reported.
         owner = cast("asyncio.Task[Any]", asyncio.current_task())
-        hb_task = asyncio.create_task(self._heartbeat(r, raw, owner))
+        interval_s = _heartbeat_interval_s(
+            r.lock_duration_s, raw.lock_expires_at, datetime.now(timezone.utc)
+        )
+        hb_task = asyncio.create_task(self._heartbeat(r, raw, interval_s, owner))
         with job_span(raw) as span:
             try:
                 try:
@@ -314,18 +343,17 @@ class Worker:
                 await self._complete(raw, result if isinstance(result, Vars) else Vars())
 
     async def _heartbeat(
-        self, r: _Registration, raw: ExternalJob, owner: asyncio.Task[Any]
+        self, r: _Registration, raw: ExternalJob, interval_s: float, owner: asyncio.Task[Any]
     ) -> None:
         """
-        Renew the job lock until cancelled. When the server answers that this
-        worker no longer holds the job, cancel ``owner`` (the dispatch task)
-        and stop.
+        Renew the job lock every ``interval_s`` until cancelled. When the
+        server answers that this worker no longer holds the job, cancel
+        ``owner`` (the dispatch task) and stop.
         """
-        interval_s = max(MIN_HEARTBEAT_INTERVAL_S, _parse_duration_s(r.lock_duration) / 2)
         while True:
             await asyncio.sleep(interval_s)
             try:
-                await asyncio.to_thread(
+                await self._call(
                     self._default.heartbeat_bpmn_external_job,
                     self._project_id,
                     raw.execution_key,
@@ -338,10 +366,9 @@ class Worker:
                 status = _http_status(exc)
                 if status in (404, 409):
                     log.warning(
-                        "heartbeat %s: lock lost (status %d), "
-                        "handler cancelled and result discarded",
+                        "heartbeat %s: %s, handler cancelled and result discarded",
                         raw.execution_key,
-                        status,
+                        _conflict_reason(exc),
                     )
                     owner.cancel()
                     return
@@ -354,7 +381,7 @@ class Worker:
                 clientID=self._client_id,
                 variables=vars.to_wire_map(),
             )
-            await asyncio.to_thread(
+            await self._call(
                 self._default.complete_bpmn_external_job,
                 self._project_id,
                 raw.execution_key,
@@ -373,7 +400,7 @@ class Worker:
                 retryable=retryable,
                 variables=vars.to_wire_map(),
             )
-            await asyncio.to_thread(
+            await self._call(
                 self._bpmn.throw_bpmn_external_job_error,
                 self._project_id,
                 raw.execution_key,
@@ -411,10 +438,22 @@ def _http_status(exc: Exception) -> int | None:
     return exc.status if isinstance(exc, ApiException) else None
 
 
+def _conflict_reason(exc: Exception) -> str:
+    """
+    The message of the server's error body, which says why this worker no
+    longer holds the job, for example that its instance was cancelled.
+    """
+    try:
+        message = json.loads(getattr(exc, "body", None) or "{}").get("message")
+    except (ValueError, AttributeError):
+        message = None
+    return message or "this worker no longer holds the job"
+
+
 def _log_report_failure(op: str, raw: ExternalJob, exc: Exception) -> None:
-    """A 409 means this worker no longer holds the lock and the server dropped the result."""
+    """A 409 means this worker no longer holds the job and the server dropped the result."""
     if _http_status(exc) == 409:
-        log.warning("%s %s: lock lost, result discarded", op, raw.execution_key)
+        log.warning("%s %s: result discarded: %s", op, raw.execution_key, _conflict_reason(exc))
     else:
         log.error("%s %s: %s", op, raw.execution_key, exc)
 
@@ -449,19 +488,47 @@ def _coerce(value: dict[str, Any], type_: Any) -> Any:
     return TypeAdapter(type_).validate_python(value)
 
 
-_DURATION_RE = re.compile(r"^(\d+)(ms|s|m|h)$")
+def _heartbeat_interval_s(
+    requested_s: float, lock_expires_at: datetime | None, now: datetime
+) -> float:
+    """
+    Half of the lock the server granted, which can be shorter than the
+    requested one. Falls back to the requested lock when ``lock_expires_at``
+    is missing or not in the future (client clock skew).
+    """
+    base = requested_s
+    if lock_expires_at is not None:
+        granted = (lock_expires_at - now).total_seconds()
+        if granted > 0:
+            base = min(requested_s, granted)
+    return max(MIN_HEARTBEAT_INTERVAL_S, base / 2)
+
+
+_DURATION_UNITS_S = {
+    "ns": 1e-9,
+    "us": 1e-6,
+    "µs": 1e-6,  # U+00B5 micro sign
+    "μs": 1e-6,  # U+03BC Greek mu
+    "ms": 1e-3,
+    "s": 1.0,
+    "m": 60.0,
+    "h": 3600.0,
+}
+_DURATION_PART = "([0-9]+\\.?[0-9]*|\\.[0-9]+)(ns|us|µs|μs|ms|s|m|h)"
+_DURATION_PART_RE = re.compile(_DURATION_PART)
+_DURATION_RE = re.compile(f"[-+]?(?:{_DURATION_PART})+")
 
 
 def _parse_duration_s(d: str) -> float:
-    """Parse a duration string like '30s', '2m', '1h', '500ms' into seconds."""
-    m = _DURATION_RE.match(d.strip())
-    if not m:
-        return 30.0
-    value = int(m.group(1))
-    unit = m.group(2)
-    return {
-        "ms": value / 1000.0,
-        "s": float(value),
-        "m": value * 60.0,
-        "h": value * 3600.0,
-    }[unit]
+    """
+    Parse a Go duration string such as '30s', '1m30s', '12.5s' or '500ms'
+    into seconds, ignoring surrounding spaces. Raises ValueError for anything
+    else Go's time.ParseDuration rejects.
+    """
+    d = d.strip()
+    if d in ("0", "+0", "-0"):
+        return 0.0
+    if not _DURATION_RE.fullmatch(d):
+        raise ValueError(f"invalid duration {d!r}, use a Go duration such as 30s, 1m30s or 12.5s")
+    seconds = sum(float(n) * _DURATION_UNITS_S[u] for n, u in _DURATION_PART_RE.findall(d))
+    return -seconds if d.startswith("-") else seconds

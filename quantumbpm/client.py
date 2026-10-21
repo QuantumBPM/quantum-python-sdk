@@ -9,7 +9,11 @@ from quantumbpm.api_client import ApiClient
 from quantumbpm.auth import TokenProvider, build_api_client
 from quantumbpm.bpmn import BpmnClient
 from quantumbpm.dmn import DmnClient
-from quantumbpm.workers import DEFAULT_SHUTDOWN_TIMEOUT_S, Worker
+from quantumbpm.workers import (
+    DEFAULT_MAX_ERROR_MESSAGE_BYTES,
+    DEFAULT_SHUTDOWN_TIMEOUT_S,
+    Worker,
+)
 
 
 class QuantumBPM:
@@ -53,8 +57,8 @@ class QuantumBPM:
             verify_ssl=verify_ssl,
         )
 
-        self.dmn = DmnClient(self._api, self._project_id)
-        self.bpmn = BpmnClient(self._api, self._project_id)
+        self.dmn = DmnClient(self._api, self._project_id, refresh=self._refresh)
+        self.bpmn = BpmnClient(self._api, self._project_id, refresh=self._refresh)
 
     @property
     def project_id(self) -> UUID:
@@ -62,17 +66,25 @@ class QuantumBPM:
 
     @property
     def raw(self) -> ApiClient:
-        """Underlying generated ApiClient. Use for endpoints not yet wrapped."""
+        """
+        Underlying generated ApiClient. Use for endpoints not yet wrapped.
+        Calls through it send the token of the last SDK call or
+        :meth:`authenticate`, so await :meth:`authenticate` first.
+        """
         return self._api
 
     async def authenticate(self) -> None:
-        """Acquire a fresh bearer token from the configured TokenProvider."""
+        """
+        Put a token from the TokenProvider on the ApiClient. The sub-clients
+        and workers do this before every API call.
+        """
         await self._refresh()
 
     def new_worker(
         self,
         *,
         client_id: str | None = None,
+        max_error_message_bytes: int = DEFAULT_MAX_ERROR_MESSAGE_BYTES,
         shutdown_timeout: float = DEFAULT_SHUTDOWN_TIMEOUT_S,
     ) -> Worker:
         """
@@ -84,7 +96,9 @@ class QuantumBPM:
             self._api,
             self._project_id,
             client_id=client_id,
+            max_error_message_bytes=max_error_message_bytes,
             shutdown_timeout=shutdown_timeout,
+            refresh=self._refresh,
         )
 
     async def __aenter__(self) -> "QuantumBPM":

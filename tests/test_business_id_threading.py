@@ -78,12 +78,13 @@ def test_list_instances_passes_business_id_filter():
     c = make_bpmn_client()
     c._default.list_bpmn_instances.return_value = MagicMock()
 
-    asyncio.run(c.list_instances(business_id="ORDER-42"))
+    asyncio.run(c.list_instances(business_id="ORDER-42", process_id="order_flow", page=2, page_size=3))
 
-    args = c._default.list_bpmn_instances.call_args.args
-    # Signature: (project_id, definition_id, status, has_incident, suspended,
-    # created_after, business_id, page, page_size)
-    assert args[6] == "ORDER-42"
+    kwargs = c._default.list_bpmn_instances.call_args.kwargs
+    assert kwargs["business_id"] == "ORDER-42"
+    assert kwargs["process_id"] == "order_flow"
+    assert kwargs["page"] == 2
+    assert kwargs["page_size"] == 3
 
 
 def test_list_user_tasks_passes_business_id_filter():

@@ -49,11 +49,11 @@ async def main():
 asyncio.run(main())
 ```
 
-The async context manager (`async with`) acquires a fresh bearer token on entry. Skipping the context manager and calling methods directly works too - the SDK refreshes tokens on demand.
+The async context manager (`async with`) fetches a bearer token on entry, so an authentication problem shows up right away. Every API call also asks the token provider for a token first, so calling methods without the context manager works too, and a long-running worker keeps sending a valid token.
 
 ## Authentication
 
-The `TokenProvider` Protocol returns a bearer token on each request. Two implementations ship out of the box.
+The SDK awaits `TokenProvider.get_token()` before every API call and sends the result as the bearer token. Two implementations ship out of the box.
 
 ### Zitadel service account
 
@@ -68,7 +68,7 @@ provider = ZitadelTokenProvider(
 )
 ```
 
-The provider caches tokens in-memory until shortly before expiry.
+The provider caches the token in memory and fetches a new one once the cached token is within 60 seconds of expiry, so the lookup before each call is cheap.
 
 ### Static bearer token
 
@@ -93,6 +93,8 @@ class MyProvider:
 
 provider: TokenProvider = MyProvider()
 ```
+
+`get_token` runs before every API call, so cache the token when fetching one is expensive.
 
 ## DMN evaluation
 
@@ -246,24 +248,28 @@ asyncio.run(main())
 @worker.handler(
     "send-email",
     max_jobs=10,            # up to 10 in flight per task type
-    poll_timeout="45s",     # long-poll wait
+    poll_timeout="5s",      # long-poll wait per request, at most 5s
     lock_duration="2m",     # exclusive lock per job
 )
 async def handle(job: Job) -> Vars:
     ...
 ```
 
-Concurrency is per task type. Different task types run independently. The runtime auto-renews the lock at half the lock-duration interval while the handler runs.
+Concurrency is per task type. Different task types run independently.
+
+`poll_timeout` and `lock_duration` take Go duration strings such as `30s`, `1m30s`, `12.5s` or `500ms`. `handler` and `handle` raise `ValueError` for a value that does not parse. One poll request waits at most 5 seconds on the server, and a larger `poll_timeout` is capped to that. When a poll returns no job, the worker polls again right away.
+
+The server clamps every lock to between 10 seconds and 5 minutes by default (`BPMN_WORKER_LEASE_MIN` and `BPMN_WORKER_LEASE_MAX`). Each polled job carries `job.raw.lock_expires_at`, the expiry of the lock the server granted. While the handler runs, the runtime heartbeats at half of the granted lock, or at half of `lock_duration` when that is shorter. A `lock_duration` of `11m` gets a 5 minute lock and a heartbeat every 2.5 minutes.
 
 ### Heartbeats, lost locks, and shutdown
 
-A polled job is locked to this worker. Each heartbeat extends the lock by `lock_duration`, and the server caps one attempt at 30 minutes by default (`BPMN_JOB_MAX_HOLD`). When the lock runs out, the server charges the job a retry and offers it again, or raises an incident when no retries are left. So abandoning a running job always costs a retry.
+A polled job is locked to this worker. Each heartbeat extends the lock by `lock_duration`, clamped the same way, and the server caps one attempt at 30 minutes by default (`BPMN_JOB_MAX_HOLD`). When the lock runs out, the server charges the job a retry and offers it again, or raises an incident when no retries are left. So abandoning a running job always costs a retry.
 
 When a heartbeat answers that this worker no longer holds the job (HTTP 409 or 404), the runtime cancels the handler with `asyncio.CancelledError` and reports nothing. A complete or error report rejected with 409 is discarded by the server and logged as a warning. Let `CancelledError` propagate out of handlers.
 
 Setting the `stop` event shuts the worker down gracefully:
 
-- No new long-poll starts. A long-poll already in flight cannot be cancelled. Jobs it returns before the shutdown timeout still run.
+- No new poll starts. A poll already in flight cannot be cancelled. It returns within 5 seconds, and jobs it returns before the shutdown timeout still run.
 - Running handlers keep heartbeating, and their results are reported.
 - Handlers still running `shutdown_timeout` seconds (default `20.0`) after `stop` is set are cancelled and not reported. Their locks run out on the server. Then `run` returns.
 
@@ -292,7 +298,7 @@ async def main():
 asyncio.run(main())
 ```
 
-On Kubernetes, set `terminationGracePeriodSeconds` above the shutdown timeout, or the pod is killed mid-drain. A long-poll in flight at stop can also hold process exit for up to `poll_timeout`, so leave room for that too.
+On Kubernetes, set `terminationGracePeriodSeconds` above the shutdown timeout, or the pod is killed mid-drain. A poll in flight at stop can also hold process exit for up to 5 seconds, so leave room for that too.
 
 ### Throwing typed BPMN errors
 
@@ -308,7 +314,7 @@ async def handle(job: Job) -> Vars:
         raise BpmnError("INSUFFICIENT_FUNDS", Vars().set("availableBalance", 12.0))
 ```
 
-Any other exception is reported as `WORKER_ERROR`, which the server treats as a retryable failure that decrements the job's retry budget.
+Any other exception is reported as `WORKER_ERROR`, which the server treats as a retryable failure that decrements the job's retry budget. The exception message goes into the `error` variable, cut to `max_error_message_bytes` bytes of UTF-8 (a `new_worker` option, default 2048).
 
 ### Typed handlers (Pydantic)
 
@@ -363,9 +369,12 @@ The `client.raw` property exposes the underlying generated `ApiClient` for endpo
 ```python
 from quantumbpm.api.bpmn_api import BpmnApi
 
+await client.authenticate()
 api = BpmnApi(client.raw)
 result = api.migrate_bpmn_instance(client.project_id, workflow_id, body)
 ```
+
+Calls through `client.raw` send the token of the last SDK call. `await client.authenticate()` puts a current token on it first.
 
 ## License
 

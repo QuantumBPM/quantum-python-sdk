@@ -56,6 +56,7 @@ docs/GetBpmnInstanceVariables200Response.md
 docs/GetVersion200Response.md
 docs/HeartbeatBpmnExternalJobRequest.md
 docs/HitRule.md
+docs/JoinArrivals.md
 docs/MigrateBpmnInstanceRequest.md
 docs/MigrationValidationResult.md
 docs/ModificationInstruction.md
@@ -147,6 +148,7 @@ quantumbpm/models/get_bpmn_instance_variables200_response.py
 quantumbpm/models/get_version200_response.py
 quantumbpm/models/heartbeat_bpmn_external_job_request.py
 quantumbpm/models/hit_rule.py
+quantumbpm/models/join_arrivals.py
 quantumbpm/models/migrate_bpmn_instance_request.py
 quantumbpm/models/migration_validation_result.py
 quantumbpm/models/modification_instruction.py
@@ -237,6 +239,7 @@ test/test_get_bpmn_instance_variables200_response.py
 test/test_get_version200_response.py
 test/test_heartbeat_bpmn_external_job_request.py
 test/test_hit_rule.py
+test/test_join_arrivals.py
 test/test_migrate_bpmn_instance_request.py
 test/test_migration_validation_result.py
 test/test_modification_instruction.py

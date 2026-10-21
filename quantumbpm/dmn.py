@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Sequence
+from typing import Any, Awaitable, Callable, Sequence
 from uuid import UUID
 
 from quantumbpm.api.default_api import DefaultApi
@@ -20,11 +20,26 @@ DmnResult = dict[str, EvaluationResult]
 
 
 class DmnClient:
-    """Evaluates DMN definitions in a single project."""
+    """
+    Evaluates DMN definitions in a single project. ``refresh`` is awaited
+    before every API call to put a current bearer token on ``api_client``.
+    """
 
-    def __init__(self, api_client: ApiClient, project_id: str | UUID) -> None:
+    def __init__(
+        self,
+        api_client: ApiClient,
+        project_id: str | UUID,
+        *,
+        refresh: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         self._api = DefaultApi(api_client)
+        self._refresh = refresh
         self._project_id = UUID(project_id) if isinstance(project_id, str) else project_id
+
+    async def _run(self, fn: Any, *args: Any) -> Any:
+        if self._refresh is not None:
+            await self._refresh()
+        return await asyncio.to_thread(fn, *args)
 
     async def evaluate(
         self,
@@ -48,7 +63,7 @@ class DmnClient:
             decisionServices=list(decision_services) if decision_services is not None else None,
             businessId=business_id,
         )
-        return await asyncio.to_thread(
+        return await self._run(
             self._api.evaluate_by_definitions_id,
             self._project_id,
             definitions_id,
@@ -78,7 +93,7 @@ class DmnClient:
             businessId=business_id,
         )
         defid = UUID(definition_id) if isinstance(definition_id, str) else definition_id
-        return await asyncio.to_thread(
+        return await self._run(
             self._api.evaluate_stored,
             self._project_id,
             defid,
@@ -105,7 +120,7 @@ class DmnClient:
             decisionServices=list(decision_services) if decision_services is not None else None,
             additionalXMLs=list(additional_xmls) if additional_xmls is not None else None,
         )
-        return await asyncio.to_thread(self._api.evaluate_design, body)
+        return await self._run(self._api.evaluate_design, body)
 
     async def evaluate_design_batch(
         self,
@@ -117,4 +132,4 @@ class DmnClient:
             xml=xml,
             inputs=[r.to_dict() for r in rows],
         )
-        return await asyncio.to_thread(self._api.evaluate_design_batch, body)
+        return await self._run(self._api.evaluate_design_batch, body)

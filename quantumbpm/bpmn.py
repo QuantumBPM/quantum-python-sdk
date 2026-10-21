@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from typing import Any
+from typing import Any, Awaitable, Callable
 from uuid import UUID
 
 from quantumbpm.api.bpmn_api import BpmnApi
@@ -52,12 +52,20 @@ from quantumbpm.variables import Vars
 class BpmnClient:
     """
     Wraps the BPMN engine endpoints - resources, instances, messaging, user
-    tasks, processes - for a single project.
+    tasks, processes - for a single project. ``refresh`` is awaited before
+    every API call to put a current bearer token on ``api_client``.
     """
 
-    def __init__(self, api_client: ApiClient, project_id: str | UUID) -> None:
+    def __init__(
+        self,
+        api_client: ApiClient,
+        project_id: str | UUID,
+        *,
+        refresh: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
         self._bpmn = BpmnApi(api_client)
         self._default = DefaultApi(api_client)
+        self._refresh = refresh
         self._project_id = UUID(project_id) if isinstance(project_id, str) else project_id
 
     # ---------------------------------------------------------------- helpers
@@ -66,8 +74,9 @@ class BpmnClient:
     def project_id(self) -> UUID:
         return self._project_id
 
-    @staticmethod
-    async def _run(fn: Any, *args: Any, **kwargs: Any) -> Any:
+    async def _run(self, fn: Any, *args: Any, **kwargs: Any) -> Any:
+        if self._refresh is not None:
+            await self._refresh()
         return await asyncio.to_thread(fn, *args, **kwargs)
 
     # ------------------------------------------------------------- resources
@@ -195,6 +204,7 @@ class BpmnClient:
         suspended: bool | None = None,
         created_after: datetime | None = None,
         business_id: str | None = None,
+        process_id: str | None = None,
         page: int | None = None,
         page_size: int | None = None,
     ) -> BpmnInstancePaginatedResponse:
@@ -202,14 +212,15 @@ class BpmnClient:
         return await self._run(
             self._default.list_bpmn_instances,
             self._project_id,
-            did,
-            status,
-            has_incident,
-            suspended,
-            created_after,
-            business_id,
-            page,
-            page_size,
+            definition_id=did,
+            status=status,
+            has_incident=has_incident,
+            suspended=suspended,
+            created_after=created_after,
+            business_id=business_id,
+            process_id=process_id,
+            page=page,
+            page_size=page_size,
         )
 
     async def get_instance_children(self, workflow_id: str) -> BpmnInstanceChildrenResponse:
