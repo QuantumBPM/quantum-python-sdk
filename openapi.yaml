@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: QuantumBPM API (Public)
-  version: 1.8.0-rc1
+  version: 1.8.0
   description: Public API for the QuantumBPM application. SDKs are generated from this spec.
 paths:
   /version:
@@ -4164,10 +4164,13 @@ components:
           x-go-type: VariableMap
         error:
           type: boolean
-          description: True when the instance has an unresolved incident.
+          description: True when the instance failed or has an unresolved incident.
         incidents:
           type: array
-          description: Active incidents that require resolution before the process can continue.
+          description: |
+            Active incidents that require resolution before the process can
+            continue. Empty once the instance has finished: the incident list keeps
+            each one with `resolvedBy` set to `system:<status>`.
           items:
             $ref: '#/components/schemas/BpmnIncident'
         activeScopes:
@@ -4221,7 +4224,7 @@ components:
       description: |
         A persisted incident - the cross-instance audit row that backs the
         "Incidents" view. The same incident is also available in
-        `BpmnInstanceState.incidents` while it is still open in the engine; the
+        `BpmnInstanceState.incidents` while it is open and the instance runs. The
         persisted row additionally carries `raisedAt` / `resolvedAt` /
         `resolvedBy` and the parent process metadata so it can be listed and
         filtered without joining back to the instance.
