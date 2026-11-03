@@ -8,6 +8,7 @@ def test_public_api_exports():
     from quantumbpm import (
         BpmnClient,
         BpmnError,
+        ClientCredentialsTokenProvider,
         DmnClient,
         DmnResult,
         Handler,
@@ -17,7 +18,6 @@ def test_public_api_exports():
         TokenProvider,
         Vars,
         Worker,
-        ZitadelTokenProvider,
     )
 
     assert all(
@@ -25,6 +25,7 @@ def test_public_api_exports():
         for cls in (
             BpmnClient,
             BpmnError,
+            ClientCredentialsTokenProvider,
             DmnClient,
             DmnResult,
             Handler,
@@ -34,6 +35,5 @@ def test_public_api_exports():
             TokenProvider,
             Vars,
             Worker,
-            ZitadelTokenProvider,
         )
     )

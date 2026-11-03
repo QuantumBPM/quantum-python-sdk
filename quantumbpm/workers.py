@@ -72,7 +72,7 @@ class Job(Generic[TVars]):
     """Job handed to a Handler."""
 
     execution_key: str
-    workflow_id: str
+    instance_id: str
     task_type: str
     vars: Vars
     typed: TVars
@@ -300,7 +300,7 @@ class Worker:
 
         job: Job[Any] = Job(
             execution_key=raw.execution_key,
-            workflow_id=raw.workflow_id,
+            instance_id=raw.instance_id,
             task_type=r.task_type,
             vars=vars,
             typed=typed,
@@ -377,7 +377,7 @@ class Worker:
     async def _complete(self, raw: ExternalJob, vars: Vars) -> None:
         try:
             body = CompleteBpmnExternalJobRequest(
-                workflowID=raw.workflow_id,
+                instanceID=raw.instance_id,
                 clientID=self._client_id,
                 variables=vars.to_wire_map(),
             )
@@ -395,6 +395,7 @@ class Worker:
     ) -> None:
         try:
             body = ThrowBpmnExternalJobErrorRequest(
+                instanceID=raw.instance_id,
                 errorCode=code,
                 clientID=self._client_id,
                 retryable=retryable,

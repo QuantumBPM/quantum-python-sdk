@@ -26,9 +26,8 @@ def make_worker(**kwargs) -> Worker:
 
 def make_raw(n: int = 1) -> ExternalJob:
     return ExternalJob(
-        id=f"11111111-1111-1111-1111-11111111111{n}",
         executionKey=f"wf-1:node-a:{n}",
-        workflowID="wf-1",
+        instanceID="wf-1",
         nodeID="node-a",
         taskType="payment",
         status="PENDING",

@@ -5,8 +5,11 @@ docs/ActiveScope.md
 docs/BatchEvaluateDesignRequest.md
 docs/BatchEvaluationResponse.md
 docs/BatchEvaluationResponseResultsInner.md
+docs/BpmnActivityState.md
 docs/BpmnApi.md
+docs/BpmnElementStatistics.md
 docs/BpmnExternalJobPaginatedResponse.md
+docs/BpmnHistoryPage.md
 docs/BpmnIncident.md
 docs/BpmnIncidentRecord.md
 docs/BpmnIncidentRecordPaginatedResponse.md
@@ -14,6 +17,7 @@ docs/BpmnInstance.md
 docs/BpmnInstanceChildrenResponse.md
 docs/BpmnInstancePaginatedResponse.md
 docs/BpmnInstanceState.md
+docs/BpmnInstanceStatus.md
 docs/BpmnProcessDefinition.md
 docs/BpmnProcessSummary.md
 docs/BpmnProcessSummaryPaginatedResponse.md
@@ -33,9 +37,11 @@ docs/CompleteBpmnExternalJobsBatchRequestItemsInner.md
 docs/CorrelationKeys.md
 docs/CreateBpmnResourceRequest.md
 docs/CreateDefinitionRequest.md
-docs/CreateProjectRequest.md
+docs/CursorPage.md
 docs/DecisionInputField.md
 docs/DecisionSummary.md
+docs/DecisionVersion.md
+docs/DecisionVersionList.md
 docs/DefaultApi.md
 docs/Definition.md
 docs/ElementMapping.md
@@ -100,7 +106,10 @@ quantumbpm/models/active_scope.py
 quantumbpm/models/batch_evaluate_design_request.py
 quantumbpm/models/batch_evaluation_response.py
 quantumbpm/models/batch_evaluation_response_results_inner.py
+quantumbpm/models/bpmn_activity_state.py
+quantumbpm/models/bpmn_element_statistics.py
 quantumbpm/models/bpmn_external_job_paginated_response.py
+quantumbpm/models/bpmn_history_page.py
 quantumbpm/models/bpmn_incident.py
 quantumbpm/models/bpmn_incident_record.py
 quantumbpm/models/bpmn_incident_record_paginated_response.py
@@ -108,6 +117,7 @@ quantumbpm/models/bpmn_instance.py
 quantumbpm/models/bpmn_instance_children_response.py
 quantumbpm/models/bpmn_instance_paginated_response.py
 quantumbpm/models/bpmn_instance_state.py
+quantumbpm/models/bpmn_instance_status.py
 quantumbpm/models/bpmn_process_definition.py
 quantumbpm/models/bpmn_process_summary.py
 quantumbpm/models/bpmn_process_summary_paginated_response.py
@@ -127,9 +137,11 @@ quantumbpm/models/complete_bpmn_external_jobs_batch_request_items_inner.py
 quantumbpm/models/correlation_keys.py
 quantumbpm/models/create_bpmn_resource_request.py
 quantumbpm/models/create_definition_request.py
-quantumbpm/models/create_project_request.py
+quantumbpm/models/cursor_page.py
 quantumbpm/models/decision_input_field.py
 quantumbpm/models/decision_summary.py
+quantumbpm/models/decision_version.py
+quantumbpm/models/decision_version_list.py
 quantumbpm/models/definition.py
 quantumbpm/models/element_mapping.py
 quantumbpm/models/error.py
@@ -188,8 +200,11 @@ test/test_active_scope.py
 test/test_batch_evaluate_design_request.py
 test/test_batch_evaluation_response.py
 test/test_batch_evaluation_response_results_inner.py
+test/test_bpmn_activity_state.py
 test/test_bpmn_api.py
+test/test_bpmn_element_statistics.py
 test/test_bpmn_external_job_paginated_response.py
+test/test_bpmn_history_page.py
 test/test_bpmn_incident.py
 test/test_bpmn_incident_record.py
 test/test_bpmn_incident_record_paginated_response.py
@@ -197,6 +212,7 @@ test/test_bpmn_instance.py
 test/test_bpmn_instance_children_response.py
 test/test_bpmn_instance_paginated_response.py
 test/test_bpmn_instance_state.py
+test/test_bpmn_instance_status.py
 test/test_bpmn_process_definition.py
 test/test_bpmn_process_summary.py
 test/test_bpmn_process_summary_paginated_response.py
@@ -216,9 +232,11 @@ test/test_complete_bpmn_external_jobs_batch_request_items_inner.py
 test/test_correlation_keys.py
 test/test_create_bpmn_resource_request.py
 test/test_create_definition_request.py
-test/test_create_project_request.py
+test/test_cursor_page.py
 test/test_decision_input_field.py
 test/test_decision_summary.py
+test/test_decision_version.py
+test/test_decision_version_list.py
 test/test_default_api.py
 test/test_definition.py
 test/test_element_mapping.py

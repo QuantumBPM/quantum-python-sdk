@@ -9,9 +9,9 @@ endpoints not yet wrapped.
 """
 
 from quantumbpm.auth import (
+    ClientCredentialsTokenProvider,
     StaticTokenProvider,
     TokenProvider,
-    ZitadelTokenProvider,
 )
 from quantumbpm.bpmn import BpmnClient
 from quantumbpm.client import QuantumBPM
@@ -19,11 +19,12 @@ from quantumbpm.dmn import DmnClient, DmnResult
 from quantumbpm.variables import Vars
 from quantumbpm.workers import BpmnError, Handler, Job, Worker
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 __all__ = [
     "BpmnClient",
     "BpmnError",
+    "ClientCredentialsTokenProvider",
     "DmnClient",
     "DmnResult",
     "Handler",
@@ -33,5 +34,4 @@ __all__ = [
     "TokenProvider",
     "Vars",
     "Worker",
-    "ZitadelTokenProvider",
 ]

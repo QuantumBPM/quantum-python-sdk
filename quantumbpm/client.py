@@ -24,9 +24,9 @@ class QuantumBPM:
     Example::
 
         async with QuantumBPM(
-            base_url="https://api.quantumbpm.com",
+            base_url="https://quantumbpm.example.com",
             project_id="00000000-0000-0000-0000-000000000000",
-            token_provider=ZitadelTokenProvider(...),
+            token_provider=ClientCredentialsTokenProvider(...),
         ) as client:
             result = await client.dmn.evaluate("loan-eligibility", vars)
     """

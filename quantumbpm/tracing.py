@@ -51,7 +51,7 @@ def job_span(raw: Any) -> Iterator[Any]:
     attributes = {
         "bpmn.task_type": raw.task_type,
         "bpmn.node_id": raw.node_id,
-        "bpmn.process_instance_id": raw.workflow_id,
+        "bpmn.process_instance_id": raw.instance_id,
         "bpmn.execution_key": raw.execution_key,
     }
     if raw.business_id:

@@ -15,7 +15,7 @@ Python 3.10+. Async-first; built on `asyncio`.
 | Module                    | Purpose                                                                       |
 | ------------------------- | ----------------------------------------------------------------------------- |
 | `quantumbpm.QuantumBPM`   | Top-level client exposing `.dmn`, `.bpmn`, plus `new_worker(...)`             |
-| `quantumbpm.auth`         | `TokenProvider`, `ZitadelTokenProvider`, `StaticTokenProvider`                |
+| `quantumbpm.auth`         | `TokenProvider`, `ClientCredentialsTokenProvider`, `StaticTokenProvider`      |
 | `quantumbpm.dmn`          | DMN evaluation: stored definitions, ad-hoc XML, batch                         |
 | `quantumbpm.bpmn`         | BPMN resources, instances, messaging, user tasks, processes                   |
 | `quantumbpm.workers`      | External job worker runtime - long-poll, lock heartbeat, dispatch             |
@@ -26,17 +26,18 @@ Python 3.10+. Async-first; built on `asyncio`.
 
 ```python
 import asyncio
-from quantumbpm import QuantumBPM, Vars, ZitadelTokenProvider
+import os
+from quantumbpm import ClientCredentialsTokenProvider, QuantumBPM, Vars
 
 async def main():
-    provider = ZitadelTokenProvider(
-        "./service-account.json",         # Zitadel JSON Key file
-        "https://auth.quantumbpm.com",    # issuer
-        "your-zitadel-project-id",        # audience scope
+    provider = ClientCredentialsTokenProvider(
+        token_url="https://idp.example.com/realms/acme/protocol/openid-connect/token",
+        client_id="billing-svc",
+        client_secret=os.environ["QUANTUMBPM_CLIENT_SECRET"],
     )
 
     async with QuantumBPM(
-        base_url="https://api.quantumbpm.com",
+        base_url="https://quantumbpm.example.com",
         project_id="00000000-0000-0000-0000-000000000000",
         token_provider=provider,
     ) as client:
@@ -55,24 +56,33 @@ The async context manager (`async with`) fetches a bearer token on entry, so an 
 
 The SDK awaits `TokenProvider.get_token()` before every API call and sends the result as the bearer token. Two implementations ship out of the box.
 
-### Zitadel service account
+### OAuth 2.0 client credentials
+
+`ClientCredentialsTokenProvider` fetches access tokens from your OIDC identity provider (Keycloak, Microsoft Entra ID, Okta, Auth0 and others) with the client credentials grant. Register a confidential client for your service at the identity provider and pass its token endpoint and credentials:
 
 ```python
-from quantumbpm import ZitadelTokenProvider
+import os
+from quantumbpm import ClientCredentialsTokenProvider
 
-provider = ZitadelTokenProvider(
-    "./service-account.json",         # path to JSON Key file
-    "https://auth.quantumbpm.com",    # issuer URL
-    "your-zitadel-project-id",        # adds the audience scope
-    ssl_ca_cert="/path/to/ca.crt",    # optional, for self-signed CAs
+provider = ClientCredentialsTokenProvider(
+    token_url="https://idp.example.com/realms/acme/protocol/openid-connect/token",
+    client_id="billing-svc",
+    client_secret=os.environ["QUANTUMBPM_CLIENT_SECRET"],
+    scopes=["openid"],                # optional
+    audience="quantumbpm",            # optional, some providers such as Auth0 require it
+    ssl_ca_cert="/path/to/ca.crt",    # optional, for an identity provider behind a private CA
 )
 ```
 
-The provider caches the token in memory and fetches a new one once the cached token is within 60 seconds of expiry, so the lookup before each call is cheap.
+The exact token endpoint depends on the identity provider. The provider's OIDC discovery document (`/.well-known/openid-configuration`) lists it as `token_endpoint`.
+
+`scopes` are sent space-joined as the `scope` parameter and `audience` as the `audience` parameter. Each is left out of the request when empty. The client must be set up at the identity provider so its tokens carry the audience and roles your QuantumBPM deployment expects.
+
+The provider caches the token in memory and fetches a new one once less than 60 seconds of its lifetime remain, so the lookup before each call is cheap. Concurrent callers wait for one shared request. A non-2xx response from the token endpoint raises `quantumbpm.exceptions.ApiException` with the HTTP status and response body.
 
 ### Static bearer token
 
-For Enterprise deployments that issue long-lived API keys, or in tests where a token is acquired out of band:
+For a token acquired out of band, for example by another library or in tests:
 
 ```python
 from quantumbpm import StaticTokenProvider
@@ -122,14 +132,6 @@ result = await client.dmn.evaluate(
 )
 ```
 
-### Evaluate by platform UUID
-
-When you already hold a database-version pointer:
-
-```python
-result = await client.dmn.evaluate_by_id(definition_uuid, vars)
-```
-
 ### Ad-hoc XML evaluation
 
 For "evaluate while editing" flows that don't store the XML:
@@ -164,12 +166,13 @@ batch = await client.dmn.evaluate_design_batch(dmn_xml, rows)
 draft = await client.bpmn.create_resource("loan-process", bpmn_xml)
 await client.bpmn.deploy_resource(draft.id)
 
-# Re-fetch to get the populated process-definition list.
+# Re-fetch to get the process versions the deploy created.
 deployed = await client.bpmn.get_resource(draft.id)
 process_def = deployed.processes[0]
 
-workflow_id = await client.bpmn.start_instance(
-    process_def.id,
+# Starts the latest version. Pass version=N to pick one.
+instance_id = await client.bpmn.start_instance(
+    process_def.process_id,
     Vars().set("applicantID", "u-123").set("requestedAmt", 25000),
 )
 ```
@@ -177,12 +180,19 @@ workflow_id = await client.bpmn.start_instance(
 ### Inspect runtime state
 
 ```python
-state = await client.bpmn.get_instance(workflow_id)
+state = await client.bpmn.get_instance(instance_id)
 print(state.status, state.active_scopes)
 
-vars = await client.bpmn.get_instance_variables(workflow_id)
+vars = await client.bpmn.get_instance_variables(instance_id)
 
-children = await client.bpmn.get_instance_children(workflow_id)
+children = await client.bpmn.get_instance_children(instance_id)
+
+# History pages run oldest first. Without options a page holds the newest
+# entries, and an entry read by its seq carries its inputs and outputs.
+page = await client.bpmn.get_instance_history(instance_id, from_seq=1, limit=100)
+entry = await client.bpmn.get_instance_history_entry(instance_id, page.items[0].seq)
+
+version = await client.bpmn.get_process_version("loan-process", 2)
 ```
 
 ### Send messages and signals
@@ -205,6 +215,19 @@ page = await client.bpmn.list_user_tasks(
     assignee="alice@example.com",
     status="CREATED",
 )
+
+# Lists of instances and user tasks page by cursor: pass the page's
+# next_cursor back for the next one. It is None on the last page.
+if page.pagination.next_cursor:
+    page = await client.bpmn.list_user_tasks(
+        assignee="alice@example.com",
+        status="CREATED",
+        cursor=page.pagination.next_cursor,
+    )
+
+# The caller's tasks soonest due first, and the project's overdue ones.
+mine = await client.bpmn.list_user_tasks_for_caller(sort="dueDate")
+overdue = await client.bpmn.list_user_tasks(status="CREATED", due_before=datetime.now(timezone.utc))
 
 await client.bpmn.complete_user_task(execution_key, Vars().set("approved", True))
 
@@ -259,11 +282,11 @@ Concurrency is per task type. Different task types run independently.
 
 `poll_timeout` and `lock_duration` take Go duration strings such as `30s`, `1m30s`, `12.5s` or `500ms`. `handler` and `handle` raise `ValueError` for a value that does not parse. One poll request waits at most 5 seconds on the server, and a larger `poll_timeout` is capped to that. When a poll returns no job, the worker polls again right away.
 
-The server clamps every lock to between 10 seconds and 5 minutes by default (`BPMN_WORKER_LEASE_MIN` and `BPMN_WORKER_LEASE_MAX`). Each polled job carries `job.raw.lock_expires_at`, the expiry of the lock the server granted. While the handler runs, the runtime heartbeats at half of the granted lock, or at half of `lock_duration` when that is shorter. A `lock_duration` of `11m` gets a 5 minute lock and a heartbeat every 2.5 minutes.
+The server clamps every lock to between 10 seconds and 5 minutes by default (`ENGINE_WORKER_LOCK_MIN` and `ENGINE_WORKER_LOCK_MAX`). Each polled job carries `job.raw.lock_expires_at`, the expiry of the lock the server granted. While the handler runs, the runtime heartbeats at half of the granted lock, or at half of `lock_duration` when that is shorter. A `lock_duration` of `11m` gets a 5 minute lock and a heartbeat every 2.5 minutes.
 
 ### Heartbeats, lost locks, and shutdown
 
-A polled job is locked to this worker. Each heartbeat extends the lock by `lock_duration`, clamped the same way, and the server caps one attempt at 30 minutes by default (`BPMN_JOB_MAX_HOLD`). When the lock runs out, the server charges the job a retry and offers it again, or raises an incident when no retries are left. So abandoning a running job always costs a retry.
+A polled job is locked to this worker. Each heartbeat extends the lock by `lock_duration`, clamped the same way, and the server caps one attempt at 30 minutes by default (`ENGINE_JOB_MAX_HOLD`). When the lock runs out, the server charges the job a retry and offers it again, or raises an incident when no retries are left. So abandoning a running job always costs a retry.
 
 When a heartbeat answers that this worker no longer holds the job (HTTP 409 or 404), the runtime cancels the handler with `asyncio.CancelledError` and reports nothing. A complete or error report rejected with 409 is discarded by the server and logged as a warning. Let `CancelledError` propagate out of handlers.
 
@@ -371,7 +394,7 @@ from quantumbpm.api.bpmn_api import BpmnApi
 
 await client.authenticate()
 api = BpmnApi(client.raw)
-result = api.migrate_bpmn_instance(client.project_id, workflow_id, body)
+result = api.migrate_bpmn_instance(client.project_id, instance_id, body)
 ```
 
 Calls through `client.raw` send the token of the last SDK call. `await client.authenticate()` puts a current token on it first.

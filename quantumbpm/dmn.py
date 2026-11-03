@@ -71,35 +71,6 @@ class DmnClient:
             version,
         )
 
-    async def evaluate_by_id(
-        self,
-        definition_id: str | UUID,
-        vars: Vars,
-        *,
-        version: int | None = None,
-        decisions: Sequence[str] | None = None,
-        decision_services: Sequence[str] | None = None,
-        business_id: str | None = None,
-    ) -> DmnResult:
-        """
-        Run a stored DMN definition addressed by its platform UUID. Prefer
-        :meth:`evaluate` (by definitions id) for normal use.
-        """
-        body = EvaluateStoredRequest(
-            context=vars.to_feel_context(),
-            version=version,
-            decisions=list(decisions) if decisions is not None else None,
-            decisionServices=list(decision_services) if decision_services is not None else None,
-            businessId=business_id,
-        )
-        defid = UUID(definition_id) if isinstance(definition_id, str) else definition_id
-        return await self._run(
-            self._api.evaluate_stored,
-            self._project_id,
-            defid,
-            body,
-        )
-
     async def evaluate_design(
         self,
         xml: str,

@@ -25,7 +25,6 @@ dependencies = [
   "python-dateutil (>=2.8.2)",
   "pydantic (>=2)",
   "typing-extensions (>=4.7.1)",
-  "PyJWT[crypto] (>=2.8.0)",
   "simplejson (>=3.19)",
   "requests (>=2.31.0)",
 ]
@@ -83,7 +82,6 @@ REQUIRES = [
     "python-dateutil >= 2.8.2",
     "pydantic >= 2",
     "typing-extensions >= 4.7.1",
-    "PyJWT[crypto] >= 2.8.0",
     "simplejson >= 3.19",
     "requests >= 2.31.0",
 ]
@@ -106,11 +104,10 @@ setup(
 )
 EOF
 
-# Restore the curated public surface - openapi-generator's __init__.py
-# re-exports every generated symbol; ours instead exposes the SDK's
-# user-facing classes (QuantumBPM, Vars, Worker, ZitadelTokenProvider, …).
-# Generated APIs and models stay reachable via fully-qualified imports
-# (quantumbpm.api.default_api.DefaultApi, etc.) for power users.
+# Restore the curated public surface. openapi-generator's __init__.py
+# re-exports every generated symbol, ours exposes the user-facing classes
+# (QuantumBPM, Vars, Worker, ClientCredentialsTokenProvider, ...). Generated
+# APIs and models stay reachable via fully-qualified imports.
 cat > "$SDK_DIR/quantumbpm/__init__.py" <<'PYEOF'
 """
 QuantumBPM Python SDK - DMN evaluation, BPMN orchestration, and external
@@ -123,9 +120,9 @@ endpoints not yet wrapped.
 """
 
 from quantumbpm.auth import (
+    ClientCredentialsTokenProvider,
     StaticTokenProvider,
     TokenProvider,
-    ZitadelTokenProvider,
 )
 from quantumbpm.bpmn import BpmnClient
 from quantumbpm.client import QuantumBPM
@@ -133,11 +130,12 @@ from quantumbpm.dmn import DmnClient, DmnResult
 from quantumbpm.variables import Vars
 from quantumbpm.workers import BpmnError, Handler, Job, Worker
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 
 __all__ = [
     "BpmnClient",
     "BpmnError",
+    "ClientCredentialsTokenProvider",
     "DmnClient",
     "DmnResult",
     "Handler",
@@ -147,7 +145,6 @@ __all__ = [
     "TokenProvider",
     "Vars",
     "Worker",
-    "ZitadelTokenProvider",
 ]
 PYEOF
 

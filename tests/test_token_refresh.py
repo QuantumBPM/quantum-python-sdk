@@ -43,9 +43,8 @@ def make_client(provider) -> tuple[QuantumBPM, list[str]]:
 
 def make_raw() -> ExternalJob:
     return ExternalJob(
-        id="11111111-1111-1111-1111-111111111111",
         executionKey="wf-1:node-a:1",
-        workflowID="wf-1",
+        instanceID="wf-1",
         nodeID="node-a",
         taskType="payment",
         status="PENDING",

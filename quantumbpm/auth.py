@@ -1,24 +1,22 @@
 """
-Authentication helpers. Provides the TokenProvider Protocol plus two
-implementations:
-
-- ZitadelTokenProvider: service-account JWT-bearer flow against Zitadel,
-  with in-memory token caching.
-- StaticTokenProvider: returns the same bearer token on every call.
+Authentication helpers: the TokenProvider Protocol, ClientCredentialsTokenProvider
+for any OIDC provider, and StaticTokenProvider for a fixed bearer token.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
 import time
-from typing import Awaitable, Callable, Protocol
+from typing import Awaitable, Callable, Protocol, Sequence
 
-import jwt
 import requests
 
 from quantumbpm.api_client import ApiClient
 from quantumbpm.configuration import Configuration
+from quantumbpm.exceptions import ApiException
+
+_REFRESH_MARGIN_S = 60.0
+_DEFAULT_LIFETIME_S = 300.0
 
 
 class TokenProvider(Protocol):
@@ -38,36 +36,31 @@ class StaticTokenProvider:
         return self._token
 
 
-class ZitadelTokenProvider:
+class ClientCredentialsTokenProvider:
     """
-    Authenticates against Zitadel using a service-account JSON Key file via
-    the JWT Profile (``urn:ietf:params:oauth:grant-type:jwt-bearer``) grant.
-    The token is cached in memory and replaced once it is within 60 seconds
-    of expiry.
+    Fetches access tokens from any OIDC provider with the OAuth 2.0 client
+    credentials grant, caching each until less than 60 seconds of it remain.
     """
 
     def __init__(
         self,
-        key_file: str,
-        issuer: str,
-        project_id: str | None = None,
+        token_url: str,
+        client_id: str,
+        client_secret: str,
+        scopes: Sequence[str] | None = None,
+        audience: str | None = None,
+        *,
         ssl_ca_cert: str | None = None,
     ) -> None:
-        with open(key_file, "r") as f:
-            self._key_data = json.load(f)
+        if not token_url or not client_id or not client_secret:
+            raise ValueError("quantumbpm: token_url, client_id and client_secret are required")
 
-        self._issuer = issuer.rstrip("/")
+        self._token_url = token_url
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._scope = " ".join(scopes) if scopes else None
+        self._audience = audience or None
         self._ssl_ca_cert = ssl_ca_cert
-
-        scopes = [
-            "openid",
-            "profile",
-            "urn:zitadel:iam:user:resourceowner",
-            "urn:zitadel:iam:org:projects:roles",
-        ]
-        if project_id:
-            scopes.append(f"urn:zitadel:iam:org:project:id:{project_id}:aud")
-        self._scope = " ".join(scopes)
 
         self._cached_token: str | None = None
         self._expiry: float = 0.0
@@ -75,42 +68,50 @@ class ZitadelTokenProvider:
 
     async def get_token(self) -> str:
         async with self._lock:
-            if self._cached_token and time.time() < self._expiry - 60:
+            if self._cached_token and time.time() < self._expiry - _REFRESH_MARGIN_S:
                 return self._cached_token
 
-            token, expires_in = await asyncio.to_thread(self._exchange)
+            requested_at = time.time()
+            token, expires_in = await asyncio.to_thread(self._request_token)
             self._cached_token = token
-            self._expiry = time.time() + expires_in
+            self._expiry = requested_at + expires_in
             return token
 
-    def _exchange(self) -> tuple[str, int]:
-        now = int(time.time())
-        assertion = jwt.encode(
-            {
-                "iss": self._key_data["userId"],
-                "sub": self._key_data["userId"],
-                "aud": self._issuer,
-                "iat": now,
-                "exp": now + 3600,
-            },
-            self._key_data["key"],
-            algorithm="RS256",
-            headers={"kid": self._key_data["keyId"]},
-        )
+    def _request_token(self) -> tuple[str, float]:
+        data = {
+            "grant_type": "client_credentials",
+            "client_id": self._client_id,
+            "client_secret": self._client_secret,
+        }
+        if self._scope:
+            data["scope"] = self._scope
+        if self._audience:
+            data["audience"] = self._audience
 
         response = requests.post(
-            f"{self._issuer}/oauth/v2/token",
-            data={
-                "grant_type": "urn:ietf:params:oauth:grant-type:jwt-bearer",
-                "scope": self._scope,
-                "assertion": assertion,
-            },
+            self._token_url,
+            data=data,
+            headers={"Accept": "application/json"},
             verify=self._ssl_ca_cert if self._ssl_ca_cert else True,
             timeout=30,
         )
-        response.raise_for_status()
+        if not 200 <= response.status_code < 300:
+            raise ApiException(
+                status=response.status_code,
+                reason=f"token request failed: {response.reason}",
+                body=response.text,
+            )
+
         body = response.json()
-        return body["access_token"], int(body["expires_in"])
+        token = body.get("access_token")
+        if not token:
+            raise ApiException(
+                status=response.status_code,
+                reason="token response has no access_token",
+                body=response.text,
+            )
+        expires_in = body.get("expires_in")
+        return token, _DEFAULT_LIFETIME_S if expires_in is None else float(expires_in)
 
 
 def build_api_client(
