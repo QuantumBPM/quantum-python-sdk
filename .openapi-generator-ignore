@@ -30,6 +30,8 @@ quantumbpm/api_client.py
 quantumbpm/rest.py
 quantumbpm/models/feel_value.py
 README.md
+# Dependency floors are raised by hand past vulnerable versions.
+requirements.txt
 
 # Auto-generated CI workflow - we maintain ci.yml + release.yml manually
 .github/workflows/python.yml

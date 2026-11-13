@@ -14,7 +14,6 @@ docs/BpmnIncident.md
 docs/BpmnIncidentRecord.md
 docs/BpmnIncidentRecordPaginatedResponse.md
 docs/BpmnInstance.md
-docs/BpmnInstanceChildrenResponse.md
 docs/BpmnInstancePaginatedResponse.md
 docs/BpmnInstanceState.md
 docs/BpmnInstanceStatus.md
@@ -39,6 +38,7 @@ docs/CreateBpmnResourceRequest.md
 docs/CreateDefinitionRequest.md
 docs/CursorPage.md
 docs/DecisionInputField.md
+docs/DecisionKind.md
 docs/DecisionSummary.md
 docs/DecisionVersion.md
 docs/DecisionVersionList.md
@@ -114,7 +114,6 @@ quantumbpm/models/bpmn_incident.py
 quantumbpm/models/bpmn_incident_record.py
 quantumbpm/models/bpmn_incident_record_paginated_response.py
 quantumbpm/models/bpmn_instance.py
-quantumbpm/models/bpmn_instance_children_response.py
 quantumbpm/models/bpmn_instance_paginated_response.py
 quantumbpm/models/bpmn_instance_state.py
 quantumbpm/models/bpmn_instance_status.py
@@ -139,6 +138,7 @@ quantumbpm/models/create_bpmn_resource_request.py
 quantumbpm/models/create_definition_request.py
 quantumbpm/models/cursor_page.py
 quantumbpm/models/decision_input_field.py
+quantumbpm/models/decision_kind.py
 quantumbpm/models/decision_summary.py
 quantumbpm/models/decision_version.py
 quantumbpm/models/decision_version_list.py
@@ -209,7 +209,6 @@ test/test_bpmn_incident.py
 test/test_bpmn_incident_record.py
 test/test_bpmn_incident_record_paginated_response.py
 test/test_bpmn_instance.py
-test/test_bpmn_instance_children_response.py
 test/test_bpmn_instance_paginated_response.py
 test/test_bpmn_instance_state.py
 test/test_bpmn_instance_status.py
@@ -234,6 +233,7 @@ test/test_create_bpmn_resource_request.py
 test/test_create_definition_request.py
 test/test_cursor_page.py
 test/test_decision_input_field.py
+test/test_decision_kind.py
 test/test_decision_summary.py
 test/test_decision_version.py
 test/test_decision_version_list.py

@@ -35,6 +35,12 @@ jobs:
       - name: Install package
         run: pip install -e .
 
+      # Resolves the dependencies pyproject.toml declares, as a fresh install would.
+      - name: Audit dependencies
+        run: |
+          pip install pip-audit==2.10.1
+          pip-audit .
+
       - name: Run tests
         run: pytest
 

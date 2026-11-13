@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: QuantumBPM API (Public)
-  version: 2.0.1
+  version: 2.1.0
   description: Public API for the QuantumBPM application. SDKs are generated from this spec.
 paths:
   /version:
@@ -692,9 +692,10 @@ paths:
     get:
       summary: List decisions
       description: |
-        Returns one row per deployed decision in the project, at its latest
-        version and with the definition that version came from. Useful for
-        picking a target decision when wiring a BPMN BusinessRuleTask.
+        Returns one row per deployed decision or decision service in the
+        project, at its latest version and with the definition that version
+        came from. Useful for picking a target when wiring a BPMN
+        BusinessRuleTask.
       operationId: ListDecisions
       x-required-role: viewer
       parameters:
@@ -796,6 +797,18 @@ paths:
           schema:
             type: integer
           description: Only evaluations of this deployed version of `definitionsID`. Ignored without `definitionsID`.
+        - name: instanceID
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Only the evaluations of this process instance's business rule tasks.
+        - name: executionKey
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Only the evaluation of this business rule task execution, the `executionKey` of its entries in the instance history. Use it with `instanceID`.
         - name: businessId
           in: query
           required: false
@@ -810,23 +823,18 @@ paths:
             type: string
             format: date-time
           description: Only return executions at or after this instant (ISO 8601). Bounds the scan and the reported total; omit for the full unbounded history.
-        - name: page
+        - name: cursor
           in: query
           required: false
+          description: The `nextCursor` of the page before, absent for the first page.
           schema:
-            type: integer
-            default: 1
-            minimum: 1
-          description: Page number (1-indexed)
-        - name: pageSize
+            type: string
+        - name: limit
           in: query
           required: false
+          description: Most executions per page, 20 by default and 100 at most.
           schema:
             type: integer
-            default: 20
-            minimum: 1
-            maximum: 100
-          description: Number of items per page (max 100)
       responses:
         '200':
           description: OK
@@ -1494,9 +1502,9 @@ paths:
       operationId: GetBpmnInstanceChildren
       x-required-role: viewer
       description: |
-        Returns instances that this instance spawned via CallActivity elements.
-        Useful for navigating into a multi-level process hierarchy (parents
-        can be discovered via `parentInstanceID` on the child).
+        Returns instances that this instance spawned via CallActivity elements,
+        newest first. Useful for navigating into a multi-level process hierarchy
+        (parents can be discovered via `parentInstanceID` on the child).
       tags:
         - bpmn
       parameters:
@@ -1511,13 +1519,25 @@ paths:
           required: true
           schema:
             type: string
+        - name: cursor
+          in: query
+          required: false
+          description: The `nextCursor` of the page before, absent for the first page.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Most instances per page, 20 by default and 100 at most.
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BpmnInstanceChildrenResponse'
+                $ref: '#/components/schemas/BpmnInstancePaginatedResponse'
   /projects/{projectID}/bpmn/instances/{instanceID}/variables:
     get:
       summary: Get BPMN instance variables
@@ -3419,6 +3439,9 @@ components:
         ruleID:
           type: string
           description: ID of the matched rule from the DMN XML.
+        ruleIndex:
+          type: integer
+          description: The matched rule's 0-based position in its decision table, in the evaluated definitions version.
         outputs:
           $ref: '#/components/schemas/FeelValue'
     EvaluationResult:
@@ -3692,6 +3715,15 @@ components:
         name:
           type: string
           description: New display name.
+    DecisionKind:
+      type: string
+      description: |
+        Whether a deployed entry is a decision or a decision service. A BPMN
+        BusinessRuleTask calls either by its ID. A decision service returns its
+        output decision's value, or a context of them when it has several.
+      enum:
+        - DECISION
+        - DECISION_SERVICE
     DecisionInputField:
       type: object
       required:
@@ -3705,21 +3737,24 @@ components:
           description: DMN typeRef (e.g. string, number, boolean) when declared
     DecisionSummary:
       type: object
-      description: A unique decision in the project, surfaced for picking from BPMN BusinessRuleTask elements.
+      description: A unique decision or decision service in the project, surfaced for picking from BPMN BusinessRuleTask elements.
       required:
         - decisionID
         - decisionName
         - definitionsID
         - definitionName
         - latestVersion
+        - kind
         - inputFields
       properties:
         decisionID:
           type: string
-          description: ID of the decision node from the DMN XML (unique per project).
+          description: ID of the decision or decision service from the DMN XML (unique per project).
         decisionName:
           type: string
-          description: Human-readable name of the decision.
+          description: Human-readable name of the decision or decision service.
+        kind:
+          $ref: '#/components/schemas/DecisionKind'
         definitionsID:
           type: string
           description: Stable identifier from the DMN XML's outer `<definitions id="…">` attribute.
@@ -3731,7 +3766,7 @@ components:
           description: The decision's latest deployed version, counted per decision id. A business rule task that binds a version names this number.
         inputFields:
           type: array
-          description: Declared input variables of the decision (from DMN `InformationRequirement` → `InputData`). Useful for prepopulating BPMN BusinessRuleTask input mappings. Empty when the decision declares no typed inputs.
+          description: Declared input variables of the decision (from DMN `InformationRequirement` → `InputData`), or a decision service's parameters (its input data, then its input decisions). Useful for prepopulating BPMN BusinessRuleTask input mappings. Empty when none are declared.
           items:
             $ref: '#/components/schemas/DecisionInputField'
     PaginatedDecisionsResponse:
@@ -3817,6 +3852,12 @@ components:
         nodeID:
           type: string
           description: The business rule task's element id. Absent on an evaluation through the API.
+        executionKey:
+          type: string
+          description: |
+            The business rule task execution the evaluation ran in, the `executionKey` of its entries
+            in the instance history. Each run of the task, a retry included, has its own. Absent on an
+            evaluation through the API.
         executedAt:
           type: string
           format: date-time
@@ -3834,6 +3875,20 @@ components:
         businessId:
           type: string
           description: Caller-supplied correlation key passed at evaluation time (REST) or inherited from the parent BPMN process (business rule task).
+    CursorPage:
+      type: object
+      description: |
+        Where a list paged by cursor stands. Pass `nextCursor` back as `cursor`
+        for the next page. It is absent on the last page. `total` counts the
+        matches on the first page only, the one read without a cursor, and stops
+        at 10,000, which `totalCapped` reports.
+      properties:
+        nextCursor:
+          type: string
+        total:
+          type: integer
+        totalCapped:
+          type: boolean
     PaginatedExecutionsResponse:
       type: object
       description: Page of recorded DMN executions.
@@ -3846,7 +3901,7 @@ components:
           items:
             $ref: '#/components/schemas/Execution'
         pagination:
-          $ref: '#/components/schemas/PaginationMetadata'
+          $ref: '#/components/schemas/CursorPage'
     BpmnResource:
       type: object
       description: A version of a BPMN resource (XML file containing one or more processes).
@@ -4156,20 +4211,6 @@ components:
         processVersion:
           type: integer
           description: Version of the process definition this instance was started from. 0 on a test run, which runs no deployed version.
-    CursorPage:
-      type: object
-      description: |
-        Where a list paged by cursor stands. Pass `nextCursor` back as `cursor`
-        for the next page. It is absent on the last page. `total` counts the
-        matches on the first page only, the one read without a cursor, and stops
-        at 10,000, which `totalCapped` reports.
-      properties:
-        nextCursor:
-          type: string
-        total:
-          type: integer
-        totalCapped:
-          type: boolean
     BpmnInstancePaginatedResponse:
       type: object
       description: Page of BPMN process instances.
@@ -4457,16 +4498,6 @@ components:
         businessId:
           type: string
           description: Caller-supplied correlation key set when the instance was started.
-    BpmnInstanceChildrenResponse:
-      type: object
-      description: Child instances spawned by a parent instance via CallActivity elements.
-      required:
-        - children
-      properties:
-        children:
-          type: array
-          items:
-            $ref: '#/components/schemas/BpmnInstance'
     BpmnActivityState:
       type: object
       description: Execution record for a single BPMN activity (service task, user task, gateway, etc.).

@@ -12,7 +12,6 @@ from quantumbpm.api.default_api import DefaultApi
 from quantumbpm.api_client import ApiClient
 from quantumbpm.models.bpmn_activity_state import BpmnActivityState
 from quantumbpm.models.bpmn_history_page import BpmnHistoryPage
-from quantumbpm.models.bpmn_instance_children_response import BpmnInstanceChildrenResponse
 from quantumbpm.models.bpmn_instance_paginated_response import BpmnInstancePaginatedResponse
 from quantumbpm.models.bpmn_instance_state import BpmnInstanceState
 from quantumbpm.models.bpmn_process_summary_paginated_response import (
@@ -232,9 +231,22 @@ class BpmnClient:
             limit=limit,
         )
 
-    async def get_instance_children(self, instance_id: str) -> BpmnInstanceChildrenResponse:
+    async def get_instance_children(
+        self,
+        instance_id: str,
+        *,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> BpmnInstancePaginatedResponse:
+        """List a page of the instances this instance spawned via CallActivity,
+        newest first. Pass the page's `pagination.next_cursor` as `cursor` for
+        the next one."""
         return await self._run(
-            self._bpmn.get_bpmn_instance_children, self._project_id, instance_id
+            self._bpmn.get_bpmn_instance_children,
+            self._project_id,
+            instance_id,
+            cursor=cursor,
+            limit=limit,
         )
 
     async def get_instance_history(

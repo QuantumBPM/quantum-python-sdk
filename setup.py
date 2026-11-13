@@ -11,12 +11,12 @@ NAME = "quantumbpm-sdk"
 VERSION = "1.0.0"
 PYTHON_REQUIRES = ">= 3.10"
 REQUIRES = [
-    "urllib3 >= 2.1.0, < 3.0.0",
+    "urllib3 >= 2.8.0, < 3.0.0",
     "python-dateutil >= 2.8.2",
     "pydantic >= 2",
     "typing-extensions >= 4.7.1",
     "simplejson >= 3.19",
-    "requests >= 2.31.0",
+    "requests >= 2.33.0",
 ]
 
 setup(
